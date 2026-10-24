@@ -1,0 +1,10 @@
+{
+  "name": "last-light",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "node --test tests/story.test.js",
+    "start": "python3 -m http.server 8000 --directory dist"
+  }
+}
