@@ -35,7 +35,7 @@ The original scripted train adventure is available at `/sample.html` and needs n
 
 ### Hosted Demo
 
-[Open Last Light](https://last-light-calhacks-thirteen.awaregoat514.chatgpt.site). The hosted demo is currently private to its owner.
+[Open Last Light](https://last-light-calhacks-thirteen.awaregoat514.chatgpt.site). The hosted demo is public and opens without a ChatGPT login. API keys remain on the server.
 
 ### Optional AI illustrations
 
@@ -62,7 +62,7 @@ The clickable props use a separate SVG foreground layer, so their hit areas rema
 
 A configured key is not proof that Gemini accepts requests. The setup status stays unverified until a story scene succeeds; failed requests show their error instead of claiming the storyteller is ready. Rejected keys, blocked keys, project restrictions, quota limits, and invalid request settings have separate messages.
 
-Local `.env` settings apply only to your local server. The private hosted demo uses its own server secrets; replacing a local key does not update the hosted key. The owner must update the hosted secret and deploy the change. If `STORY_SESSION_SECRET` is unset, rotating the Gemini key also invalidates existing signed journeys; start a new adventure. Set a separate stable session secret before creating adventures if future key rotations must preserve them.
+Local `.env` settings apply only to your local server. The hosted demo uses its own server secrets; replacing a local key does not update the hosted key. The owner must update the hosted secret and deploy the change. If `STORY_SESSION_SECRET` is unset, rotating the Gemini key also invalidates existing signed journeys; start a new adventure. Set a separate stable session secret before creating adventures if future key rotations must preserve them.
 
 ### Custom mood and art direction
 
