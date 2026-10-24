@@ -23,7 +23,7 @@ Last Light lets players create their own fictional worlds, shape narratives thro
 Clone the feature branch, create your local configuration, and start the app:
 
 ```bash
-git clone --branch feature/openai-scene-objects https://github.com/Curious-Entity/Cal-Hacks-13.git
+git clone --branch feature/generated-3d-world https://github.com/Curious-Entity/Cal-Hacks-13.git
 cd Cal-Hacks-13
 cp last-light/.env.example last-light/.env
 # Open last-light/.env in your editor and add your own API keys.

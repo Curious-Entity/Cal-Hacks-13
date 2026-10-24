@@ -18,7 +18,7 @@ The current app generates a five-scene adventure from your premise, character, t
 To use your own keys, clone this branch and create a local configuration:
 
 ```bash
-git clone --branch feature/openai-scene-objects https://github.com/Curious-Entity/Cal-Hacks-13.git
+git clone --branch feature/generated-3d-world https://github.com/Curious-Entity/Cal-Hacks-13.git
 cd Cal-Hacks-13
 cp last-light/.env.example last-light/.env
 # Edit last-light/.env locally; add GEMINI_API_KEY, CLOUDFLARE_ACCOUNT_ID, and CLOUDFLARE_API_TOKEN.
