@@ -15,7 +15,7 @@ Last Light lets players create their own fictional worlds, shape narratives thro
 - **Five-Scene Adventures:** Experience a complete interactive story with a conclusion.
 - **Save & Resume:** Continue your adventure across browser sessions.
 - **Scene Exploration:** Click objects to reveal clues that influence the next scene.
-- **Interactive Visuals:** Atmospheric artwork, optional on-demand OpenAI illustrations, and the original train demo.
+- **Interactive Visuals:** Atmospheric artwork, Cloudflare scene illustrations with optional OpenAI/Gemini providers, and the original train demo.
 
 ## Getting Started
 
@@ -31,7 +31,7 @@ python3 last-light/run.py
 
 Open the local URL printed in your terminal.
 
-Set `GEMINI_API_KEY` for story generation and `OPENAI_API_KEY` for OpenAI illustrations. OpenAI images require API credits and model access. Keys stay in your ignored `.env`; the committed `.env.example` is blank. The launcher creates `.env` automatically if you skip the copy step. No npm install or production build is needed for local play. Python 3.12+ is recommended; alternatively use Node.js 22.13+ with `cd last-light && node server.mjs`.
+Set `GEMINI_API_KEY` for story generation. For free-tier images, set `CLOUDFLARE_ACCOUNT_ID` and `CLOUDFLARE_API_TOKEN`; the template selects `IMAGE_PROVIDER=cloudflare`. Use Cloudflare’s Workers Free plan so the daily limit stops requests without paid overage. Keys stay in your ignored `.env`; the committed `.env.example` is blank. The launcher creates `.env` automatically if you skip the copy step. No npm install or production build is needed for local play. Python 3.12+ is recommended; alternatively use Node.js 22.13+ with `cd last-light && node server.mjs`.
 
 ## Documentation
 

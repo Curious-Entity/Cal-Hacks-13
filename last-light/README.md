@@ -21,7 +21,7 @@ To use your own keys, clone this branch and create a local configuration:
 git clone --branch feature/openai-scene-objects https://github.com/Curious-Entity/Cal-Hacks-13.git
 cd Cal-Hacks-13
 cp last-light/.env.example last-light/.env
-# Edit last-light/.env locally; add your own GEMINI_API_KEY and OPENAI_API_KEY.
+# Edit last-light/.env locally; add GEMINI_API_KEY, CLOUDFLARE_ACCOUNT_ID, and CLOUDFLARE_API_TOKEN.
 python3 last-light/run.py
 ```
 
@@ -29,7 +29,7 @@ Open the URL printed in the terminal. The launcher uses a free port between 8000
 
 Use Python 3.12+ for the launcher. No `npm install` or production build is required for local play. If `.env` is missing, the launcher creates it from the blank template without overwriting an existing file. With Node.js 22.13+ installed, you can also run `cd last-light` followed by `node server.mjs`.
 
-`GEMINI_API_KEY` enables live stories. `OPENAI_API_KEY` enables the selected OpenAI image provider, which also requires API credits and access to the configured image model. Each teammate supplies their own keys. In setup, enable AI illustrations, then press **Illustrate this scene** after starting a story. Object interactions work with both the included atmospheric artwork and AI illustrations.
+`GEMINI_API_KEY` enables live stories. `CLOUDFLARE_ACCOUNT_ID` and `CLOUDFLARE_API_TOKEN` enable the default Cloudflare image provider. Each teammate supplies their own keys. In setup, enable AI illustrations, then press **Illustrate this scene** after starting a story. Object interactions work with both the included atmospheric artwork and AI illustrations.
 
 The original scripted train adventure is available at `/sample.html` and needs no API key.
 
@@ -43,15 +43,18 @@ Keep real credentials only in the ignored `.env` file. Never put keys in `.env.e
 
 ```dotenv
 GEMINI_API_KEY=your_gemini_key
-OPENAI_API_KEY=your_openai_key
-IMAGE_PROVIDER=openai
+CLOUDFLARE_ACCOUNT_ID=your_account_id
+CLOUDFLARE_API_TOKEN=your_workers_ai_token
+IMAGE_PROVIDER=cloudflare
 ENABLE_IMAGE_GENERATION=true
 OPENAI_IMAGE_USE_REFERENCE=false
 ```
 
-Enable AI illustrations in the setup form. **Only when I ask** is the default: press **Illustrate this scene** when you want an image, or choose one image per scene. OpenAI uses `gpt-image-2.5-flare`, low quality, one 1024×1024 JPEG per request. Images are stored in the browser and reused on reload. Reference-image input is off by default to reduce input cost; it can be enabled with `OPENAI_IMAGE_USE_REFERENCE=true`.
+Cloudflare illustrations default to **Once for every scene** in a fresh setup. Saved image preferences are respected. You can turn images off or select **Only when I ask**, then use **Illustrate this scene**. One image is requested per visited scene; unchosen branches are never illustrated. Images are cached in the browser and reused on reload.
 
-OpenAI API credits are required separately. A missing-credit, access, or rate-limit error leaves the atmospheric artwork, clickable objects, saved story, and decisions available. Add API credits and use **Retry image** when ready. See the [official image guide](https://developers.openai.com/api/docs/guides/image-generation) for current pricing and supported options.
+The Cloudflare provider uses `@cf/black-forest-labs/flux-2-klein-4b` at 1024×768. Each adventure keeps its seed, cast descriptions, mood, and art direction. Later scenes reuse the first available scene image as a reference, resized below 512 pixels on both dimensions. This improves visual continuity but cannot guarantee identical character likeness. Choices and clickable objects remain available while images paint.
+
+OpenAI remains available by setting `IMAGE_PROVIDER=openai` and adding `OPENAI_API_KEY`. It uses `gpt-image-2.5-flare`, low quality, one 1024×1024 JPEG per request, and requires OpenAI API credits. Its reference input is off by default; enable it with `OPENAI_IMAGE_USE_REFERENCE=true` if desired. `IMAGE_PROVIDER=gemini` selects the Gemini image provider, subject to that project's image access and quota. See the [OpenAI image guide](https://developers.openai.com/api/docs/guides/image-generation) for its current options.
 
 The clickable props use a separate SVG foreground layer, so their hit areas remain aligned across screen sizes. Their descriptions and clues arrive with the story; inspecting them makes no additional model or image call.
 
@@ -65,15 +68,16 @@ Local `.env` settings apply only to your local server. The private hosted demo u
 
 Choose **Custom…** in either menu to write your own preferences. Story mood accepts up to 240 characters; art direction accepts up to 400. For example: “bittersweet with dry humor” and “gouache on textured paper, amber highlights, indigo shadows.” The draft is saved locally, and these directions are included in every story turn and illustration prompt.
 
-### Free image-generation research
+### Free Cloudflare image setup
 
-Checked October 23, 2026. The strongest free-tier candidate found is **Cloudflare Workers AI with FLUX.2 [klein] 4B**. Cloudflare provides a shared account allowance of 10,000 Neurons per day; on Workers Free, requests stop at the allowance instead of creating paid overage. This is a quota, not unlimited generation or an uptime guarantee. See [Cloudflare pricing](https://developers.cloudflare.com/workers-ai/platform/pricing/).
+1. Create a free [Cloudflare account](https://dash.cloudflare.com/).
+2. Open **Workers AI → REST API → Create a Workers AI API Token**. The token needs Workers AI Read and Edit permissions scoped to your account.
+3. Copy the Account ID and put both values in your ignored `last-light/.env`. Keep the tracked `.env.example` blank.
+4. Keep `IMAGE_PROVIDER=cloudflare` and `ENABLE_IMAGE_GENERATION=true`, start the server, and begin an adventure with AI illustrations enabled.
 
-For visual continuity, generate the first scene, keep the cast descriptions and art direction fixed, and send that first image as a reference for subsequent scenes. Klein 4B supports reference-image editing and reproducible seeds; Cloudflare documents up to four reference images, each smaller than 512×512. Reference reuse should improve continuity, but character likeness still needs visual testing. See the [official model integration example](https://developers.cloudflare.com/changelog/post/2026-01-15-flux-2-klein-4b-workers-ai/).
+Cloudflare's Workers Free plan provides a shared account allowance of 10,000 Neurons per day. Stay on **Workers Free** to have requests stop at the daily limit instead of creating paid overage. Limits reset at 00:00 UTC. The app handles quota/capacity errors without losing your story and never falls back to a paid image provider. See [Cloudflare pricing](https://developers.cloudflare.com/workers-ai/platform/pricing/) and its [REST token setup guide](https://developers.cloudflare.com/workers-ai/get-started/rest-api/).
 
-Cloudflare requires a free account, its Account ID, and a Workers AI API token. Its [REST setup guide](https://developers.cloudflare.com/workers-ai/get-started/rest-api/) explains token creation. **Cloudflare is a researched next integration, not an image provider currently wired into this app; no live Cloudflare generation has been tested.** The current providers remain OpenAI and Gemini.
-
-Other options reviewed: [Hugging Face Inference Providers](https://huggingface.co/docs/inference-providers/pricing) currently offers free users $0.10 in monthly credits, subject to change, which is a small experimentation budget. [Pollinations](https://github.com/pollinations/pollinations/blob/main/APIDOCS.md) currently requires authentication for generation and applies account/key budgets; it should not be treated as an unlimited anonymous endpoint.
+Live Cloudflare generation was verified on October 24, 2026; the first test image took about 37 seconds. Latency varies with service capacity. The [official Klein integration example](https://developers.cloudflare.com/changelog/post/2026-01-15-flux-2-klein-4b-workers-ai/) documents multipart requests and reference inputs. Image descriptions and object clues remain playable while generation runs.
 
 ## Core Concept
 
@@ -193,7 +197,7 @@ The generated adventure includes:
 - Gemini scene generation with validated JSON and a stable supporting cast
 - Five scenes, 2–3 choices per turn, and an ending shaped by previous decisions
 - 2–4 clickable objects per scene, a discovery journal, and clues in next-scene context
-- Atmospheric vector artwork and optional OpenAI or Gemini illustrations
+- Atmospheric vector artwork and Cloudflare illustrations and optional OpenAI/Gemini providers
 - Signed story state, browser save/resume, and retryable API errors
 - Responsive layouts and keyboard-accessible controls
 
@@ -250,7 +254,8 @@ Tests cover original train paths, generated story progression, signed saves, obj
 ### AI Integration
 
 - Gemini API for structured scene generation
-- OpenAI Images API for optional low-quality JPEG illustrations (Gemini image provider also supported)
+- Cloudflare Workers AI for free-tier scene illustrations with reference images
+- Optional OpenAI Images API and Gemini image providers
 - Server-side model integration
 - Structured JSON responses
 - Persistent world and story state

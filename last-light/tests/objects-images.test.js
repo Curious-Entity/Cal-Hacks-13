@@ -82,6 +82,6 @@ test('image configuration does not advertise a provider without its key',()=>{
 
 test('the tracked environment template contains no credential values',async()=>{
   const source=await readFile(new URL('../.env.example',import.meta.url),'utf8');
-  const assigned=source.split(/\r?\n/).some(line=>/^\s*(GEMINI_API_KEY|GOOGLE_API_KEY|OPENAI_API_KEY|STORY_SESSION_SECRET)\s*=\s*\S/.test(line));
+  const assigned=source.split(/\r?\n/).some(line=>/^\s*(GEMINI_API_KEY|GOOGLE_API_KEY|OPENAI_API_KEY|CLOUDFLARE_API_TOKEN|CLOUDFLARE_ACCOUNT_ID|STORY_SESSION_SECRET)\s*=\s*\S/.test(line));
   assert.ok(!assigned,'Remove credential values from .env.example; keep them only in the ignored .env file.');
 });

@@ -1,7 +1,7 @@
 // Portable server-side story engine. Used by the local server and hosted Worker.
 // The browser receives a signed journey; a choice cannot rewrite its past.
 import { StoryError } from './errors.js';
-import { imageConfiguration, illustrationPrompt, validateReference, checkedImage, generateOpenAIImage } from './images.js';
+import { imageConfiguration, imageCredentialScope, illustrationPrompt, validateReference, checkedImage, generateOpenAIImage, generateCloudflareImage } from './images.js';
 import { storyMood, artDirection } from './preferences.js';
 import { geminiError } from './gemini-errors.js';
 export { StoryError } from './errors.js';
@@ -211,6 +211,7 @@ export async function generateImage(state, env, reference, fetcher = fetch) {
   const config=imageConfiguration(env);
   if (!config.enabled || !state.setup.illustrations) throw new StoryError('AI illustrations are not enabled for this project. Your atmospheric scene and story remain available.', 403, 'IMAGES_DISABLED');
   if (config.provider === 'openai') return generateOpenAIImage(state,env,reference,fetcher);
+  if (config.provider === 'cloudflare') return generateCloudflareImage(state,env,reference,fetcher);
   const parts = [{ text: illustrationPrompt(state) }];
   if (reference) {
     validateReference(reference);
@@ -253,7 +254,7 @@ export async function handleAPI(request, env = {}, fetcher = fetch) {
   try {
     if (url.pathname === '/api/config' && request.method === 'GET') {
       const images=imageConfiguration(env);
-      return jsonResponse({configured:Boolean(keyValue(env)),illustrations:images.enabled,imageProvider:images.provider,imageReferences:images.references,totalScenes:TOTAL_SCENES});
+      return jsonResponse({configured:Boolean(keyValue(env)),illustrations:images.enabled,imageProvider:images.provider,imageReferences:images.references,imageReferenceMaxDimension:images.referenceMaxDimension,totalScenes:TOTAL_SCENES});
     }
     if (!['/api/story/start','/api/story/choose','/api/story/image','/api/story/inspect'].includes(url.pathname)) return jsonResponse({ error: 'Endpoint not found.' }, 404);
     if (request.method !== 'POST') return new Response('Method not allowed', { status: 405, headers: { allow: 'POST' } });
@@ -287,7 +288,7 @@ export async function handleAPI(request, env = {}, fetcher = fetch) {
     }
     // Object inspections change the journey token, but never regenerate the image.
     const images=imageConfiguration(env);
-    const imageScope=await digest(images.provider === 'openai' ? env.OPENAI_API_KEY || '' : keyValue(env));
+    const imageScope=await digest(imageCredentialScope(env));
     const cacheKey = await digest(imageScope+JSON.stringify({id:previous.id,index:previous.sceneIndex,prompt:previous.scene.imagePrompt,style:previous.setup.artStyle,images}));
     return jsonResponse(await once(imageRequests, cacheKey, 3, () => generateImage(previous, env, data.reference, fetcher)));
   } catch (error) {

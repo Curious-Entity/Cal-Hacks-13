@@ -12,6 +12,7 @@ let inspectedObjectId = null;
 let imageRun = 0;
 let config = null;
 let storyConnection = 'unchecked';
+let imagePreferencesSaved = false;
 let storageAvailable = true;
 const imageInFlight = new Set();
 
@@ -36,6 +37,8 @@ function updatePreferenceFields() {
 function fillSetup(setup) {
   if (!setup || typeof setup !== 'object') return;
   for (const [key, selector] of Object.entries({ premise:'#premise', protagonist:'#protagonist', details:'#story-details', tone:'#tone', artStyle:'#art-style', customMood:'#custom-mood', customArtStyle:'#custom-art-style' })) if (typeof setup[key] === 'string') $(selector).value = setup[key];
+  if (typeof setup.illustrations==='boolean') { $('#ai-illustrations').checked=setup.illustrations;imagePreferencesSaved=true; }
+  if (['on-demand','automatic'].includes(setup.illustrationMode)) $('#image-frequency').value=setup.illustrationMode;
   updatePreferenceFields();
   if (setup.details) $('.story-details').open = true;
 }
@@ -76,8 +79,11 @@ async function refreshConfig() {
     renderConnectionStatus();
     $('#ai-illustrations').disabled = !config.illustrations;
     if (!config.illustrations) $('#ai-illustrations').checked = false;
+    else if (config.imageProvider==='cloudflare' && !imagePreferencesSaved) {
+      $('#ai-illustrations').checked=true;$('#image-frequency').value='automatic';
+    }
     $('#image-frequency-field').hidden = !$('#ai-illustrations').checked;
-    $('#image-access-note').textContent = config.illustrations ? `${config.imageProvider === 'openai' ? 'OpenAI · low quality.' : 'AI illustration.'} Paint only when you ask, or once per scene. Saved images are reused.` : 'Atmospheric scenes are included. Connect an image provider to paint additional illustrations.';
+    $('#image-access-note').textContent = config.illustrations ? `${config.imageProvider === 'cloudflare' ? 'Cloudflare · daily free allowance.' : config.imageProvider === 'openai' ? 'OpenAI · low quality.' : 'AI illustration.'} Paint only when you ask, or once per scene. Saved images are reused.` : 'Atmospheric scenes are included. Connect an image provider to paint additional illustrations.';
   } catch {
     config = null;
     $('#connection-status').classList.remove('ready');$('#connection-status').classList.add('failed');
@@ -283,11 +289,11 @@ function displayImage(data, state) {
   $('#generated-art').hidden = false; $('#visual-type').textContent = 'AI SCENE ILLUSTRATION';
   $('#illustrate-scene').hidden=true;
 }
-async function imageReference(dataUrl) {
+async function imageReference(dataUrl, maximumDimension = 768) {
   if (!validImage(dataUrl)) return null;
   try {
     const image = new Image(); image.src = dataUrl; await image.decode();
-    const canvas = document.createElement('canvas'); const scale = Math.min(1,768/image.width);
+    const canvas = document.createElement('canvas'); const scale = Math.min(1,maximumDimension/Math.max(image.width,image.height));
     canvas.width = Math.round(image.width*scale); canvas.height = Math.round(image.height*scale);
     canvas.getContext('2d').drawImage(image,0,0,canvas.width,canvas.height);
     return { mimeType:'image/jpeg',data:canvas.toDataURL('image/jpeg',.75).split(',')[1] };
@@ -305,7 +311,7 @@ async function loadVisual(generateIfMissing = false) {
     $('#illustrate-scene').hidden=false;return;
   }
   imageInFlight.add(key); $('#image-progress').hidden = false; $('#image-error').hidden = true;$('#illustrate-scene').hidden=true;
-  const reference = config?.imageReferences && state.sceneIndex > 1 ? await imageReference(await imageStore(`${state.id}:1`)) : null;
+  const reference = config?.imageReferences && state.sceneIndex > 1 ? await imageReference(await imageStore(`${state.id}:1`),config.imageReferenceMaxDimension || 768) : null;
   // Image generation runs separately; choices remain available while it paints.
   post('/api/story/image',{ token:current.token, ...(reference ? {reference} : {}) }).then(async result=>{
     if (!validImage(result.dataUrl)) throw new Error('The illustration could not be displayed.');
@@ -324,7 +330,7 @@ $('#setup-form').addEventListener('submit',async event=>{
   const requestId = pending?.type === 'start' && JSON.stringify(pending.payload.setup) === JSON.stringify(setup) ? pending.payload.requestId : crypto.randomUUID();
   runRequest({ type:'start',payload:{ setup,requestId } });
 });
-$('#setup-form').addEventListener('input',()=>{ try { localStorage.setItem(DRAFT,JSON.stringify(readSetup())); } catch {} });
+$('#setup-form').addEventListener('input',event=>{ if (['ai-illustrations','image-frequency'].includes(event.target.id)) imagePreferencesSaved=true;try { localStorage.setItem(DRAFT,JSON.stringify(readSetup())); } catch {} });
 $('#ai-illustrations').addEventListener('change',()=>{$('#image-frequency-field').hidden=!$('#ai-illustrations').checked;});
 $('#tone').addEventListener('change',updatePreferenceFields);
 $('#art-style').addEventListener('change',updatePreferenceFields);
