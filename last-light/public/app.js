@@ -1,7 +1,9 @@
+import { initLanguage, t } from './i18n.js';
 // UI wiring: story.js owns the rules; this file puts the current state on screen.
 import { SAVE_KEY, CHARACTERS, newGame, getChoices, takeAction, serializeGame, restoreGame, getView, inspectObject } from './story.js';
 
 const $ = selector => document.querySelector(selector);
+initLanguage();
 let state = newGame();
 let storageAvailable = true;
 try {
@@ -43,7 +45,7 @@ function render() {
   $('.world-art').src = reachedPlatform ? 'platform.svg' : 'carriage.svg';
   $('.world-art').alt = reachedPlatform ? 'A quiet railway platform at sunrise, with mountains, a station clock, and a train disappearing into the distance.' : 'A midnight train carriage, lit by warm lamps, with mountains beyond rain-streaked windows.';
   $('.photo-hotspot').dataset.collected = String(state.stage !== 'arrival' && state.ending !== 'loop');
-  $('#inventory-content').textContent = state.inventory.join(' · ');
+  $('#inventory-content').textContent = state.inventory.map(item => t(item)).join(' · ');
   $('#memory-count').textContent = state.memories.length;
   $('#memory-notice').hidden = !state.memories.length;
   $('#memory-notice-text').textContent = state.memories.at(-1) || '';
@@ -147,3 +149,7 @@ $('#sound-button').addEventListener('click', async () => {
 });
 
 render();
+
+window.addEventListener('languagechange', () => {
+  $('#inventory-content').textContent = state.inventory.map(item => t(item)).join(' · ');
+});

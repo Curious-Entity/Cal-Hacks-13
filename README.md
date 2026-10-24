@@ -1,3 +1,4 @@
+[简体中文](README_ZH.md) | English
 
 # Last Light — AI Interactive Storytelling
 
@@ -13,7 +14,7 @@ Unlike traditional interactive fiction with predefined story branches, Last Ligh
 
 ### Current AI Adventure
 
-The current app generates a five-scene adventure from your premise, character, tone, and optional world details. Gemini writes only the next scene after your decision. Each scene includes 2–4 inspectable objects with descriptions and clues that carry forward in story memory.
+The current app generates a five-scene adventure from your premise, character, tone, and optional world details. Cloudflare Workers AI or Gemini writes only the next scene after your decision. Each scene includes 2–4 inspectable objects with descriptions and clues that carry forward in story memory.
 
 To use your own keys, clone this branch and create a local configuration:
 
@@ -21,7 +22,8 @@ To use your own keys, clone this branch and create a local configuration:
 git clone --branch feature/openai-scene-objects https://github.com/Curious-Entity/Cal-Hacks-13.git
 cd Cal-Hacks-13
 cp last-light/.env.example last-light/.env
-# Edit last-light/.env locally; add GEMINI_API_KEY, CLOUDFLARE_ACCOUNT_ID, and CLOUDFLARE_API_TOKEN.
+# Edit last-light/.env locally; add CLOUDFLARE_ACCOUNT_ID and CLOUDFLARE_API_TOKEN.
+# Set TEXT_PROVIDER=cloudflare to use Cloudflare for stories.
 python3 last-light/run.py
 ```
 
@@ -29,9 +31,31 @@ Open the URL printed in the terminal. The launcher uses a free port between 8000
 
 Use Python 3.12+ for the launcher. No `npm install` or production build is required for local play. If `.env` is missing, the launcher creates it from the blank template without overwriting an existing file. With Node.js 22.13+ installed, you can also run `cd last-light` followed by `node server.mjs`.
 
-`GEMINI_API_KEY` enables live stories. `CLOUDFLARE_ACCOUNT_ID` and `CLOUDFLARE_API_TOKEN` enable the default Cloudflare image provider. Each teammate supplies their own keys. In setup, enable AI illustrations, then press **Illustrate this scene** after starting a story. Object interactions work with both the included atmospheric artwork and AI illustrations.
+`CLOUDFLARE_ACCOUNT_ID` and `CLOUDFLARE_API_TOKEN` enable both story generation and Cloudflare illustrations; no Gemini key is required. `GEMINI_API_KEY` (or `GOOGLE_API_KEY`) remains available for Gemini stories. Each teammate supplies their own keys. In setup, enable AI illustrations, then press **Illustrate this scene** after starting a story. Object interactions work with both the included atmospheric artwork and AI illustrations.
 
 The original scripted train adventure is available at `/sample.html` and needs no API key.
+
+### Cloudflare stories and language
+
+Keep your existing Cloudflare credentials in `last-light/.env` and add these settings:
+
+```dotenv
+TEXT_PROVIDER=cloudflare
+IMAGE_PROVIDER=cloudflare
+ENABLE_IMAGE_GENERATION=true
+# Optional override; this is the default text model:
+# CLOUDFLARE_TEXT_MODEL=@cf/qwen/qwen3-30b-a3b-fp8
+```
+
+The text adapter uses [Cloudflare's Qwen3 model](https://developers.cloudflare.com/workers-ai/models/qwen3-30b-a3b-fp8/) with JSON-schema output and the same server-side scene validation as Gemini. Use a Workers AI token scoped to your account with the required Read/Edit permissions. Text and images share your Workers AI allowance; requests can fail when quota, access, or capacity is unavailable. No automatic provider fallback occurs. See [JSON mode](https://developers.cloudflare.com/workers-ai/features/json-mode/) and [Workers AI pricing](https://developers.cloudflare.com/workers-ai/platform/pricing/).
+
+If `TEXT_PROVIDER` is omitted, an existing Gemini key retains priority; otherwise Cloudflare credentials enable text. Setting `TEXT_PROVIDER=cloudflare` explicitly selects Cloudflare even if a Gemini key is also present. Teammates can instead set `TEXT_PROVIDER=gemini` with `GEMINI_API_KEY`. Image-provider selection is independent.
+
+Restart the running server after updating the backend code, then reopen its printed URL. Local `.env` values are read on every API request, but nonempty process environment variables take precedence. `/api/config` reports `configured`, `textProvider`, and `textModel` without credentials. Configuration is not proof of successful authentication: begin a story to verify access.
+
+Choose **English | 简体中文** before starting an adventure. New stories use that language for narration, titles, choices, objects, clues, relationships, and memory on every turn. The validated optional `setup.language` is `en` or `zh-CN`; omitted values and old saves default to English. The language is retained in the signed journey. Switching the interface during play does not translate prior content or change the journey's language; start a new adventure for a different language. Generated output still depends on the model and may be rejected if it fails scene validation.
+
+For hosted deployment, configure `TEXT_PROVIDER`, the Cloudflare credentials, image settings, and a stable `STORY_SESSION_SECRET` in the hosted environment and deploy the updated code through the existing workflow. REST calls work without an AI binding. Local `.env` changes do not update hosted secrets. Before removing a Gemini key used to sign old saves, retain that signing value as `STORY_SESSION_SECRET` if those saves must remain valid; otherwise start a new adventure. Tests use mocked providers and do not verify live account access.
 
 ### Hosted Demo
 
@@ -42,7 +66,7 @@ The original scripted train adventure is available at `/sample.html` and needs n
 Keep real credentials only in the ignored `.env` file. Never put keys in `.env.example`, browser JavaScript, screenshots, or Git commits.
 
 ```dotenv
-GEMINI_API_KEY=your_gemini_key
+TEXT_PROVIDER=cloudflare
 CLOUDFLARE_ACCOUNT_ID=your_account_id
 CLOUDFLARE_API_TOKEN=your_workers_ai_token
 IMAGE_PROVIDER=cloudflare
@@ -60,9 +84,9 @@ The clickable props use a separate SVG foreground layer, so their hit areas rema
 
 ### Connection errors
 
-A configured key is not proof that Gemini accepts requests. The setup status stays unverified until a story scene succeeds; failed requests show their error instead of claiming the storyteller is ready. Rejected keys, blocked keys, project restrictions, quota limits, and invalid request settings have separate messages.
+Configured credentials are not proof that the selected text provider accepts requests. The setup status stays unverified until a story scene succeeds; failed requests show their error instead of claiming the storyteller is ready. Rejected keys, blocked keys, project restrictions, quota limits, and invalid request settings have separate messages.
 
-Local `.env` settings apply only to your local server. The private hosted demo uses its own server secrets; replacing a local key does not update the hosted key. The owner must update the hosted secret and deploy the change. If `STORY_SESSION_SECRET` is unset, rotating the Gemini key also invalidates existing signed journeys; start a new adventure. Set a separate stable session secret before creating adventures if future key rotations must preserve them.
+Local `.env` settings apply only to your local server. The private hosted demo uses its own server secrets; replacing a local key does not update the hosted key. The owner must update the hosted secret and deploy the change. If `STORY_SESSION_SECRET` is unset, saves are signed with the Gemini key when present, otherwise the Cloudflare token. Removing or rotating that signing credential invalidates existing signed journeys; start a new adventure. Set a separate stable session secret before creating adventures if future key rotations must preserve them.
 
 ### Custom mood and art direction
 
@@ -194,7 +218,7 @@ The final chapter should resolve the central conflict using the player's accumul
 The generated adventure includes:
 
 - User-defined premise, protagonist, tone, art style, and optional world details
-- Gemini scene generation with validated JSON and a stable supporting cast
+- Cloudflare Workers AI or Gemini scene generation with validated JSON and a stable supporting cast
 - Five scenes, 2–3 choices per turn, and an ending shaped by previous decisions
 - 2–4 clickable objects per scene, a discovery journal, and clues in next-scene context
 - Atmospheric vector artwork and Cloudflare illustrations and optional OpenAI/Gemini providers
@@ -247,7 +271,7 @@ Tests cover original train paths, generated story progression, signed saves, obj
 
 ### AI Integration
 
-- Gemini API for structured scene generation
+- Cloudflare Workers AI or Gemini API for structured scene generation
 - Cloudflare Workers AI for free-tier scene illustrations with reference images
 - Optional OpenAI Images API and Gemini image providers
 - Server-side model integration
@@ -266,12 +290,14 @@ values take precedence. Never expose provider keys to browser code.
 
 | Variable | Purpose |
 | --- | --- |
-| `GEMINI_API_KEY` | Story key; `GOOGLE_API_KEY` is accepted as an alternative. |
+| `TEXT_PROVIDER` | `cloudflare` or `gemini`; omitted values prefer an existing Gemini key, otherwise Cloudflare. |
+| `CLOUDFLARE_TEXT_MODEL` | Cloudflare story model override; default: `@cf/qwen/qwen3-30b-a3b-fp8`. Use a model supporting JSON-schema output. |
+| `GEMINI_API_KEY` | Optional Gemini story key; `GOOGLE_API_KEY` is accepted as an alternative. |
 | `GEMINI_TEXT_MODEL` | Overrides the story model; code default: `gemini-3.5-flash-lite`. |
-| `STORY_SESSION_SECRET` | Stable HMAC signing secret; otherwise the Gemini key is used. |
+| `STORY_SESSION_SECRET` | Stable HMAC signing secret; otherwise the Gemini key when present, then the Cloudflare token is used. |
 | `ENABLE_IMAGE_GENERATION` | Must equal `true` to enable configured illustrations. |
 | `IMAGE_PROVIDER` | Explicit `cloudflare`, `openai`, or `gemini` selection. Without it, configured Cloudflare credentials take precedence, then OpenAI, then Gemini. |
-| `CLOUDFLARE_ACCOUNT_ID`, `CLOUDFLARE_API_TOKEN` | Cloudflare account and Workers AI credentials. |
+| `CLOUDFLARE_ACCOUNT_ID`, `CLOUDFLARE_API_TOKEN` | Cloudflare account and Workers AI credentials for text and images. |
 | `OPENAI_API_KEY`, `OPENAI_IMAGE_MODEL` | Optional OpenAI key and model override. |
 | `OPENAI_IMAGE_USE_REFERENCE` | OpenAI reference input is enabled only when `true`. |
 | `GEMINI_IMAGE_MODEL` | Gemini image model override; code default: `gemini-nano-banana-2.1`. |
@@ -279,8 +305,8 @@ values take precedence. Never expose provider keys to browser code.
 
 | Endpoint | Behavior |
 | --- | --- |
-| `GET /api/config` | Reports configuration flags, image provider/reference settings, and scene count; never keys. |
-| `POST /api/story/start` | Accepts setup and a request ID; generates scene one. |
+| `GET /api/config` | Reports configuration flags, text provider/model, supported story languages, image provider/reference settings, and scene count; never keys. |
+| `POST /api/story/start` | Accepts setup (including optional `language`) and a request ID; generates scene one. |
 | `POST /api/story/choose` | Accepts a signed token and current choice ID; generates one next scene. |
 | `POST /api/story/inspect` | Accepts a signed token and object ID; records its clue without a provider call. |
 | `POST /api/story/image` | Accepts a signed token and optional image reference; generates an illustration separately. |

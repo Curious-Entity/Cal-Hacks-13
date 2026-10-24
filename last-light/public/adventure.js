@@ -1,9 +1,13 @@
+import { examples, localizeExampleValue } from './examples.js';
+import { initLanguage, t, getLanguage } from './i18n.js';
 import { sceneArt } from './scene-art.js';
 import { objectIcon, objectPositions } from './scene-objects.js';
 
 const $ = selector => document.querySelector(selector);
+initLanguage();
 const SAVE = 'last-light-generated-v2';
 const DRAFT = 'last-light-setup-v2';
+const exampleFields = { premise:'#premise', protagonist:'#protagonist', details:'#story-details', customMood:'#custom-mood', customArtStyle:'#custom-art-style' };
 let journey = null;
 let pending = null;
 let busy = false;
@@ -21,12 +25,21 @@ function element(tag, text, className) {
   if (className) node.className = className;
   return node;
 }
+function storyElement(tag, text) {
+  const node = element(tag, text); node.dataset.storyContent = ''; return node;
+}
 function save() {
   try { localStorage.setItem(SAVE, JSON.stringify({ journey, pending })); storageAvailable = true; }
   catch { storageAvailable = false; }
 }
 function readSetup() {
-  return { premise: $('#premise').value.trim(), protagonist: $('#protagonist').value.trim(), details: $('#story-details').value.trim(), tone: $('#tone').value, artStyle: $('#art-style').value, customMood:$('#custom-mood').value.trim(), customArtStyle:$('#custom-art-style').value.trim(), illustrations: $('#ai-illustrations').checked, illustrationMode:$('#image-frequency').value };
+  return { language:getLanguage(), premise: $('#premise').value.trim(), protagonist: $('#protagonist').value.trim(), details: $('#story-details').value.trim(), tone: $('#tone').value, artStyle: $('#art-style').value, customMood:$('#custom-mood').value.trim(), customArtStyle:$('#custom-art-style').value.trim(), illustrations: $('#ai-illustrations').checked, illustrationMode:$('#image-frequency').value };
+}
+function saveDraft() {
+  const draft = readSetup();
+  // Keep exact typed text in drafts; only API submissions trim whitespace.
+  for (const [field, selector] of Object.entries(exampleFields)) draft[field] = $(selector).value;
+  try { localStorage.setItem(DRAFT, JSON.stringify(draft)); } catch { /* In-memory fallback. */ }
 }
 function updatePreferenceFields() {
   for (const [select,field,input] of [['#tone','#custom-mood-field','#custom-mood'],['#art-style','#custom-art-field','#custom-art-style']]) {
@@ -36,7 +49,7 @@ function updatePreferenceFields() {
 }
 function fillSetup(setup) {
   if (!setup || typeof setup !== 'object') return;
-  for (const [key, selector] of Object.entries({ premise:'#premise', protagonist:'#protagonist', details:'#story-details', tone:'#tone', artStyle:'#art-style', customMood:'#custom-mood', customArtStyle:'#custom-art-style' })) if (typeof setup[key] === 'string') $(selector).value = setup[key];
+  for (const [key, selector] of Object.entries({ premise:'#premise', protagonist:'#protagonist', details:'#story-details', tone:'#tone', artStyle:'#art-style', customMood:'#custom-mood', customArtStyle:'#custom-art-style' })) if (typeof setup[key] === 'string') $(selector).value = localizeExampleValue(key, setup[key], getLanguage());
   if (typeof setup.illustrations==='boolean') { $('#ai-illustrations').checked=setup.illustrations;imagePreferencesSaved=true; }
   if (['on-demand','automatic'].includes(setup.illustrationMode)) $('#image-frequency').value=setup.illustrationMode;
   updatePreferenceFields();
@@ -65,17 +78,19 @@ function renderConnectionStatus() {
   const node=$('#connection-status');
   node.classList.toggle('ready',Boolean(config?.configured && storyConnection==='verified'));
   node.classList.toggle('failed',Boolean(config?.configured && storyConnection==='failed'));
-  if (!config?.configured) node.textContent='Live generation is not connected yet. Add the project’s Gemini key, or explore the train demo.';
+  if (!config?.configured) node.textContent='Live generation is not configured. Connect Cloudflare Workers AI or Gemini, or explore the train demo.';
   else if (storyConnection==='verified') node.textContent='✧ Your storyteller is connected.';
   else if (storyConnection==='checking') node.textContent='Checking the story connection and writing your scene…';
   else if (storyConnection==='failed') node.textContent='The last story request failed. Check the error message before retrying.';
-  else node.textContent='Your story connection will be checked when you begin.';
+  else node.textContent=config.textProvider === 'cloudflare' ? 'Cloudflare Workers AI is configured. Its connection will be checked when you begin.' : 'Gemini is configured. Its connection will be checked when you begin.';
 }
 async function refreshConfig() {
   try {
     const response = await fetch('/api/config', { cache:'no-store' });
     if (!response.ok) throw new Error('No app server');
-    config = await response.json();
+    const nextConfig = await response.json();
+    if (config && (config.textProvider !== nextConfig.textProvider || config.textModel !== nextConfig.textModel)) storyConnection='unchecked';
+    config = nextConfig;
     renderConnectionStatus();
     $('#ai-illustrations').disabled = !config.illustrations;
     if (!config.illustrations) $('#ai-illustrations').checked = false;
@@ -181,11 +196,12 @@ function renderStory() {
   renderObjects();
   $('#generated-scene-caption').textContent = scene.isEnding ? 'An ending shaped by what you chose.' : 'Your next choice writes the next page.';
   $('#generated-choice-prompt').textContent = scene.isEnding ? 'EVERY ENDING HOLDS ANOTHER BEGINNING' : 'WHAT WILL YOU DO?';
+  $('#decision-echo').dataset.storyContent='';
   $('#decision-echo').hidden = !state.history.length;
-  $('#decision-echo').textContent = state.history.length ? `✧ You chose: ${state.history.at(-1).decision}` : '';
+  $('#decision-echo').textContent = state.history.length ? t('✧ You chose: {0}',state.history.at(-1).decision) : '';
   $('#generated-choices').replaceChildren(...scene.choices.map((choice, index) => {
     const button = element('button','','choice'); button.type = 'button'; button.dataset.choiceId = choice.id;
-    const copy = element('span','','choice-copy'); copy.append(element('strong',choice.label),element('small',choice.hint));
+    const copy = element('span','','choice-copy'); copy.append(storyElement('strong',choice.label),storyElement('small',choice.hint));
     button.append(element('span',String(index+1).padStart(2,'0'),'choice-number'),copy,element('span','↗','choice-arrow'));
     button.addEventListener('click', () => runRequest({ type:'choose', payload:{ token:journey.token, choiceId:choice.id } }));
     return button;
@@ -211,11 +227,12 @@ function renderObjects() {
   $('#explore-hint').hidden=!objects.length;
   $('#scene-objects').replaceChildren(...objects.map((item,index)=>{
     const button=element('button','','hotspot generated-object');button.type='button';button.dataset.objectId=item.id;
+    button.dataset.storyAttribute = '';
     button.style.left=positions[index][0]+'%';button.style.top=positions[index][1]+'%';
     const found=(state.discoveries || []).some(d=>d.scene===state.sceneIndex && d.id===item.id);
-    button.dataset.inspected=String(found);button.setAttribute('aria-label',`Inspect ${item.label}${found ? ', already in your journal' : ''}`);
+    button.dataset.inspected=String(found);button.setAttribute('aria-label',t('Inspect {0}{1}',item.label,found ? t(', already in your journal') : ''));
     const sprite=element('span','','object-sprite');sprite.innerHTML=objectIcon(item.icon);
-    const caption=element('span','','hotspot-caption');caption.append(element('i',''),document.createTextNode(item.label),element('span',found?'✓':'+','object-seen'));
+    const caption=element('span','','hotspot-caption');caption.append(element('i',''),storyElement('span',item.label),element('span',found?'✓':'+','object-seen'));
     button.append(sprite,caption);button.addEventListener('click',()=>inspectObject(item.id));return button;
   }));
 }
@@ -226,7 +243,7 @@ async function inspectObject(objectId) {
   if (!item) return;
   inspectedObjectId=objectId;
   $('#object-title').textContent=item.label;$('#object-description').textContent=item.description;$('#object-clue').textContent=item.clue;
-  $('#object-scene-label').textContent=`A CLOSER LOOK · ${state.scene.location}`;
+  $('#object-scene-label').textContent=t('A CLOSER LOOK · {0}',state.scene.location);$('#object-scene-label').dataset.storyContent='';
   $('#object-dialog-icon').innerHTML=objectIcon(item.icon);
   $('#retry-inspection').hidden=true;
   if (!$('#object-dialog').open) $('#object-dialog').showModal();
@@ -241,7 +258,7 @@ async function inspectObject(objectId) {
     if (pending?.type==='choose') pending.payload.token=journey.token;
     save();
     const marker=[...document.querySelectorAll('[data-object-id]')].find(button=>button.dataset.objectId===objectId);
-    if (marker) {marker.dataset.inspected='true';marker.querySelector('.object-seen').textContent='✓';marker.setAttribute('aria-label',`Inspect ${item.label}, already in your journal`);}
+    if (marker) {marker.dataset.inspected='true';marker.querySelector('.object-seen').textContent='✓';marker.setAttribute('aria-label',t('Inspect {0}, already in your journal',item.label));}
     $('#journey-status').textContent=`${journey.state.history.length} decisions · ${journey.state.discoveries.length} discoveries`;
     $('#object-memory-status').textContent='✓ Discovery saved. The next scene will remember what you found.';
   } catch(error) {$('#object-memory-status').textContent=error.message;$('#retry-inspection').hidden=false;}
@@ -254,8 +271,8 @@ function openJournal() {
   $('#generated-relationships').replaceChildren(...state.characters.map(person=>{
     const node = element('div','','relationship'); node.append(element('strong',person.name),element('span',person.relationship)); return node;
   }));
-  $('#generated-decisions').replaceChildren(...(state.history.length ? state.history.map(item=>`${item.title}: ${item.decision}`) : ['Your first decision is still ahead.']).map(text=>element('li',text)));
-  $('#generated-discoveries').replaceChildren(...((state.discoveries || []).length ? state.discoveries.map(item=>`${item.label}: ${item.clue}`) : ['Look closer at the objects in your scene to discover more.']).map(text=>element('li',text)));
+  $('#generated-decisions').replaceChildren(...(state.history.length ? state.history.map(item=>`${item.title}: ${item.decision}`) : [t('Your first decision is still ahead.')]).map(text=>element('li',text)));
+  $('#generated-discoveries').replaceChildren(...((state.discoveries || []).length ? state.discoveries.map(item=>`${item.label}: ${item.clue}`) : [t('Look closer at the objects in your scene to discover more.')]).map(text=>element('li',text)));
   $('#generated-facts').replaceChildren(...state.facts.map(text=>element('li',text)));
   $('#adventure-journal-dialog').showModal();
 }
@@ -284,8 +301,9 @@ async function imageStore(key, value) {
 const validImage = data => typeof data === 'string' && /^data:image\/(png|jpeg|webp);base64,[A-Za-z0-9+/]+=*$/.test(data);
 function displayImage(data, state) {
   if (!validImage(data)) return;
+  $('#generated-art').dataset.storyAttribute = '';
   $('#generated-art').src = data;
-  $('#generated-art').alt = `Illustration of ${state.scene.location}: ${state.scene.imagePrompt}`;
+  $('#generated-art').alt = t('Illustration of {0}: {1}',state.scene.location,state.scene.imagePrompt);
   $('#generated-art').hidden = false; $('#visual-type').textContent = 'AI SCENE ILLUSTRATION';
   $('#illustrate-scene').hidden=true;
 }
@@ -325,23 +343,18 @@ async function loadVisual(generateIfMissing = false) {
 $('#setup-form').addEventListener('submit',async event=>{
   event.preventDefault(); if (busy) return;
   await refreshConfig();
-  if (!config?.configured) { showError(config ? 'The project’s Gemini connection is not configured yet. Add its API key to begin; the train demo is available now.' : 'Start the app server with python3 last-light/run.py, then open the URL it prints.',true); return; }
+  if (!config?.configured) { showError(config ? 'The text provider is not configured. Add Cloudflare Workers AI or Gemini credentials on the server; the train demo is available now.' : 'Start the app server with python3 last-light/run.py, then open the URL it prints.',true); return; }
   const setup = readSetup();
   const requestId = pending?.type === 'start' && JSON.stringify(pending.payload.setup) === JSON.stringify(setup) ? pending.payload.requestId : crypto.randomUUID();
   runRequest({ type:'start',payload:{ setup,requestId } });
 });
-$('#setup-form').addEventListener('input',event=>{ if (['ai-illustrations','image-frequency'].includes(event.target.id)) imagePreferencesSaved=true;try { localStorage.setItem(DRAFT,JSON.stringify(readSetup())); } catch {} });
+$('#setup-form').addEventListener('input',event=>{ if (['ai-illustrations','image-frequency'].includes(event.target.id)) imagePreferencesSaved=true;saveDraft(); });
 $('#ai-illustrations').addEventListener('change',()=>{$('#image-frequency-field').hidden=!$('#ai-illustrations').checked;});
 $('#tone').addEventListener('change',updatePreferenceFields);
 $('#art-style').addEventListener('change',updatePreferenceFields);
-const examples = {
-  ocean: { premise:'I’m a detective in an underwater city where everyone has forgotten yesterday. A letter arrives in my own handwriting, warning me not to trust the sunrise.', protagonist:'A rookie detective who can hear echoes of lost memories', details:'My partner is a nervous octopus. The city runs on bottled sunlight. Make the mystery hopeful, with no combat.' },
-  space: { premise:'I’m the last gardener on a spaceship carrying Earth’s final forest. One morning, the trees start growing star maps—and the ship changes course on its own.', protagonist:'A young botanist who has never seen a real sunrise', details:'My only companion is a maintenance robot that secretly writes poetry. Our choices should affect the forest and our friendship.' },
-  forest: { premise:'I’ve inherited a tiny tea shop at the edge of an enchanted forest. My first customer is a dragon who has lost the ability to breathe fire, and the moon has gone missing.', protagonist:'An apprentice tea maker with a very opinionated cat', details:'A cozy adventure about helping strangers. Magic comes from small acts of kindness. No violence or horror.' },
-};
 document.querySelectorAll('[data-example]').forEach(button=>button.addEventListener('click',()=>{
-  fillSetup(examples[button.dataset.example]);
-  $('#premise').focus(); try { localStorage.setItem(DRAFT,JSON.stringify(readSetup())); } catch {}
+  fillSetup(examples[button.dataset.example][getLanguage()]);
+  $('#premise').focus(); saveDraft();
 }));
 $('#new-adventure').addEventListener('click',()=>$('#new-adventure-dialog').showModal());
 $('#cancel-new').addEventListener('click',()=>$('#new-adventure-dialog').close());
@@ -361,3 +374,25 @@ if (journey) {
   fillSetup(pending.payload.setup); showError('Your opening scene did not finish. Choose “Begin my adventure” to retry the same request.',true);
 }
 refreshConfig();
+
+function localizeExampleFields() {
+  let changed = false;
+  for (const [field, selector] of Object.entries(exampleFields)) {
+    const input = $(selector);
+    const value = localizeExampleValue(field, input.value, getLanguage());
+    if (value !== input.value) { input.value = value; input.setCustomValidity(''); changed = true; }
+  }
+  if (changed) saveDraft();
+}
+window.addEventListener('languagechange', () => {
+  localizeExampleFields();
+  if (config) renderConnectionStatus();
+  if (!journey) return;
+  const state = journey.state;
+  if (state.history.length) $('#decision-echo').textContent = t('✧ You chose: {0}', state.history.at(-1).decision);
+  if ($('#adventure-journal-dialog').open) openJournal();
+  const item = state.scene.objects?.find(item => item.id === inspectedObjectId);
+  if (item) $('#object-scene-label').textContent = t('A CLOSER LOOK · {0}',state.scene.location);
+  renderObjects(); updateInspectionControls();
+  if (!$('#generated-art').hidden) $('#generated-art').alt = t('Illustration of {0}: {1}',state.scene.location,state.scene.imagePrompt);
+});

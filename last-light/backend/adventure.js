@@ -3,6 +3,7 @@
 import { StoryError } from './errors.js';
 import { imageConfiguration, imageCredentialScope, illustrationPrompt, validateReference, checkedImage, generateOpenAIImage, generateCloudflareImage } from './images.js';
 import { storyMood, artDirection } from './preferences.js';
+import { geminiKey, sessionSecret, textConfiguration, requireTextConfiguration, textCredentialScope, generateCloudflareText } from './text.js';
 import { geminiError } from './gemini-errors.js';
 export { StoryError } from './errors.js';
 export const TOTAL_SCENES = 5;
@@ -24,6 +25,8 @@ export function validateSetup(input) {
   const tone = input.tone || 'cinematic';
   const artStyle = input.artStyle || 'illustrated';
   const illustrationMode = input.illustrationMode || 'on-demand';
+  const language = input.language ?? 'en';
+  if (!['en','zh-CN'].includes(language)) throw new StoryError('Choose English or Simplified Chinese for your story.');
   if (!['on-demand','automatic'].includes(illustrationMode)) throw new StoryError('Choose when to generate illustrations.');
   if (!['cinematic','wonder','mysterious','cozy','custom'].includes(tone) || !['illustrated','watercolor','noir','custom'].includes(artStyle)) throw new StoryError('Choose a preset or write your own mood and art direction.');
   return {
@@ -32,7 +35,7 @@ export function validateSetup(input) {
     protagonist: string(input.protagonist || '', 'Your character', 120), tone, artStyle,
     customMood: string(input.customMood ?? '', 'Custom story mood', 240, tone === 'custom' ? 1 : 0),
     customArtStyle: string(input.customArtStyle ?? '', 'Custom art direction', 400, artStyle === 'custom' ? 1 : 0),
-    illustrations: input.illustrations === true, illustrationMode,
+    illustrations: input.illustrations === true, illustrationMode, language,
   };
 }
 
@@ -119,6 +122,7 @@ Return only the requested JSON object. All strings are plain text, never HTML or
 export function buildScenePrompt(setup, previous = null, selected = null) {
   const index = previous ? previous.sceneIndex + 1 : 1;
   return JSON.stringify({
+    storyLanguage: setup.language || 'en',
     userSetup: setup, currentSceneNumber: index, totalScenes: TOTAL_SCENES,
     creativeDirection: { mood:storyMood(setup), artDirection:artDirection(setup) },
     ...(previous ? {
@@ -137,10 +141,10 @@ function base64(bytes) { let str = ''; for (const byte of bytes) str += String.f
 function fromBase64(str) { return Uint8Array.from(atob(str), c => c.charCodeAt(0)); }
 function url64(bytes) { return base64(bytes).replaceAll('+','-').replaceAll('/','_').replace(/=+$/,''); }
 function unurl64(str) { return fromBase64(str.replaceAll('-','+').replaceAll('_','/')); }
-function keyValue(env) { return env.GEMINI_API_KEY || env.GOOGLE_API_KEY || ''; }
+const keyValue = geminiKey;
 async function signingKey(env) {
-  const secret = env.STORY_SESSION_SECRET || keyValue(env);
-  if (!secret) throw new StoryError('Story generation is not connected yet. Add the project’s Gemini API key to continue.', 503, 'NOT_CONFIGURED');
+  const secret = sessionSecret(env);
+  if (!secret) throw new StoryError('Story generation is not configured. Connect Cloudflare Workers AI or Gemini on the server.', 503, 'NOT_CONFIGURED');
   return crypto.subtle.importKey('raw', encoder.encode(secret), { name: 'HMAC', hash: 'SHA-256' }, false, ['sign','verify']);
 }
 export async function signJourney(state, env) {
@@ -185,16 +189,25 @@ async function providerCall(env, model, body, fetcher, timeout) {
 
 export async function generateScene(setup, previous, selected, env, fetcher = fetch) {
   const index = previous ? previous.sceneIndex + 1 : 1;
-  const result = await providerCall(env, env.GEMINI_TEXT_MODEL || TEXT_MODEL, {
-    systemInstruction: { parts: [{ text: SYSTEM }] },
-    contents: [{ role: 'user', parts: [{ text: buildScenePrompt(setup, previous, selected) }] }],
-    generationConfig: { responseMimeType: 'application/json', responseJsonSchema: sceneSchema(index), maxOutputTokens: 5500, temperature: .85 },
-  }, fetcher, 75000);
-  const candidate = result.candidates?.[0];
-  if (!candidate || candidate.finishReason && candidate.finishReason !== 'STOP') throw new StoryError('The storyteller could not complete this scene. Try again, or adjust your premise.', 502, 'INCOMPLETE_SCENE');
+  const config = requireTextConfiguration(env);
+  // Lock language to the signed setup. Existing saves without a language use English.
+  const language = setup.language || 'en';
+  const system = SYSTEM + `\nWrite all player-visible story text in ${language === 'zh-CN' ? 'Simplified Chinese (简体中文)' : 'English'}, regardless of the language of the premise or prior context. This includes titles, narration, choice labels and hints, character descriptions and relationships, object labels, descriptions and clues, facts, and memorySummary. Keep JSON property names, stable slug IDs, icon names and visual enum values in English. Keep established character names unchanged. imagePrompt may be English. Return JSON only, without reasoning, Markdown, or commentary.`;
+  const prompt = buildScenePrompt(setup, previous, selected);
   let scene;
-  try { scene = JSON.parse(candidate.content.parts.filter(p => p.text && !p.thought).map(p => p.text).join('')); }
-  catch { throw new StoryError('The storyteller returned an incomplete scene. Please retry.', 502, 'INVALID_MODEL_RESPONSE'); }
+  if (config.provider === 'cloudflare') {
+    scene = await generateCloudflareText(system, prompt, sceneSchema(index), env, fetcher);
+  } else {
+    const result = await providerCall(env, config.model, {
+      systemInstruction: { parts: [{ text: system }] },
+      contents: [{ role: 'user', parts: [{ text: prompt }] }],
+      generationConfig: { responseMimeType: 'application/json', responseJsonSchema: sceneSchema(index), maxOutputTokens: 5500, temperature: .85 },
+    }, fetcher, 75000);
+    const candidate = result.candidates?.[0];
+    if (!candidate || candidate.finishReason && candidate.finishReason !== 'STOP') throw new StoryError('The storyteller could not complete this scene. Try again, or adjust your premise.', 502, 'INCOMPLETE_SCENE');
+    try { scene = JSON.parse(candidate.content.parts.filter(p => p.text && !p.thought).map(p => p.text).join('')); }
+    catch { throw new StoryError('The storyteller returned an incomplete scene. Please retry.', 502, 'INVALID_MODEL_RESPONSE'); }
+  }
   const checked = validateScene(scene, index, previous);
   const history = previous ? [...previous.history, { scene: previous.sceneIndex, title: previous.scene.chapterTitle, decision: selected.label }] : [];
   const facts = [...new Set([...(previous?.facts || []), ...checked.newFacts])].slice(-20);
@@ -254,7 +267,8 @@ export async function handleAPI(request, env = {}, fetcher = fetch) {
   try {
     if (url.pathname === '/api/config' && request.method === 'GET') {
       const images=imageConfiguration(env);
-      return jsonResponse({configured:Boolean(keyValue(env)),illustrations:images.enabled,imageProvider:images.provider,imageReferences:images.references,imageReferenceMaxDimension:images.referenceMaxDimension,totalScenes:TOTAL_SCENES});
+      const text=textConfiguration(env);
+      return jsonResponse({configured:text.configured,textProvider:text.provider,textModel:text.model,storyLanguages:['en','zh-CN'],illustrations:images.enabled,imageProvider:images.provider,imageReferences:images.references,imageReferenceMaxDimension:images.referenceMaxDimension,totalScenes:TOTAL_SCENES});
     }
     if (!['/api/story/start','/api/story/choose','/api/story/image','/api/story/inspect'].includes(url.pathname)) return jsonResponse({ error: 'Endpoint not found.' }, 404);
     if (request.method !== 'POST') return new Response('Method not allowed', { status: 405, headers: { allow: 'POST' } });
@@ -268,9 +282,9 @@ export async function handleAPI(request, env = {}, fetcher = fetch) {
     let data;
     try { data = JSON.parse(raw); } catch { throw new StoryError('The request could not be read.'); }
     if (!data || typeof data !== 'object' || Array.isArray(data)) throw new StoryError('The request could not be read.');
-    if (!keyValue(env)) throw new StoryError('Story generation is not connected yet. Add the project’s Gemini API key to continue.', 503, 'NOT_CONFIGURED');
-    const scope = await digest(keyValue(env));
+    const scope = await digest(textCredentialScope(env));
     if (url.pathname.endsWith('/start')) {
+      requireTextConfiguration(env);
       const setup = validateSetup(data.setup);
       if (setup.illustrations && !imageConfiguration(env).enabled) throw new StoryError('AI illustrations are not connected yet. Turn that option off to create an adventure with atmospheric scenes.');
       const requestId = string(data.requestId, 'Request ID', 80, 8);
