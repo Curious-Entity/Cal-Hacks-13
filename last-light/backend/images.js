@@ -1,4 +1,5 @@
 import { StoryError } from './errors.js';
+import { storyMood, artDirection } from './preferences.js';
 
 export const OPENAI_IMAGE_MODEL = 'gpt-image-2.5-flare';
 export function imageConfiguration(env) {
@@ -12,7 +13,7 @@ export function imageConfiguration(env) {
 }
 
 export function illustrationPrompt(state) {
-  return `Create one cinematic environmental illustration for an interactive story. Art direction: ${state.setup.artStyle}. Mood: ${state.setup.tone}. Preserve the described cast appearances. Scene: ${state.scene.imagePrompt}\nCast: ${JSON.stringify(state.characters.map(c=>({name:c.name,appearance:c.appearance})))}. The app draws inspectable objects as separate foreground sprites, so leave breathing room in the lower foreground. Do not paint captions, letters, UI, hotspots, or readable text. Do not reveal anything hidden inside an object. Use a complete composition without borders.`;
+  return `Create one environmental illustration for an interactive story. Art direction: ${artDirection(state.setup)}. Mood: ${storyMood(state.setup)}. Keep this art direction, palette, and described cast appearances consistent across the adventure. Scene: ${state.scene.imagePrompt}\nCast: ${JSON.stringify(state.characters.map(c=>({name:c.name,appearance:c.appearance})))}. The app draws inspectable objects as separate foreground sprites, so leave breathing room in the lower foreground. Do not paint captions, letters, UI, hotspots, or readable text. Do not reveal anything hidden inside an object. Use a complete composition without borders.`;
 }
 
 export function validateReference(reference) {

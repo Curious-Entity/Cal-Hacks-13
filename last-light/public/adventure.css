@@ -32,6 +32,12 @@ textarea,input,select { font:inherit; }
 .story-details summary > span { font-size:17px; }
 .story-details textarea { margin-top:11px; }
 .field-row { display:grid; grid-template-columns:1fr 1fr; gap:12px; }
+.field-row > div { min-width:0; }
+.custom-preference { margin-top:14px; }
+.custom-preference label { font-size:10px; color:var(--muted); }
+.custom-preference .field-help { margin:8px 0 0; }
+#visual-mood { max-width:45%; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+@media(max-width:500px) { .field-row:has(.custom-preference:not([hidden])) { grid-template-columns:1fr; gap:18px; } }
 .setup-card select { font-size:10px; padding:12px 8px; min-height:44px; }
 .image-option { border-top:1px solid var(--line); padding:17px 0 5px; margin-top:20px; }
 .image-option label { display:flex; align-items:flex-start; gap:10px; cursor:pointer; font-size:11px; }

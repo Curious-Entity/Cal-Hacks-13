@@ -8,7 +8,7 @@ Last Light lets players create their own fictional worlds, shape narratives thro
 
 ## Features
 
-- **Custom World Creation:** Describe a setting, character, and story premise.
+- **Custom World Creation:** Describe a setting, character, and story premise; choose presets or type your own mood and art direction.
 - **AI-Powered Storytelling:** Generate new scenes dynamically using Gemini.
 - **Meaningful Choices:** Each decision shapes what happens next.
 - **Story Memory:** Carry important events, character relationships, and decisions into future scenes.

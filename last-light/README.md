@@ -55,6 +55,20 @@ OpenAI API credits are required separately. A missing-credit, access, or rate-li
 
 The clickable props use a separate SVG foreground layer, so their hit areas remain aligned across screen sizes. Their descriptions and clues arrive with the story; inspecting them makes no additional model or image call.
 
+### Custom mood and art direction
+
+Choose **Custom…** in either menu to write your own preferences. Story mood accepts up to 240 characters; art direction accepts up to 400. For example: “bittersweet with dry humor” and “gouache on textured paper, amber highlights, indigo shadows.” The draft is saved locally, and these directions are included in every story turn and illustration prompt.
+
+### Free image-generation research
+
+Checked October 23, 2026. The strongest free-tier candidate found is **Cloudflare Workers AI with FLUX.2 [klein] 4B**. Cloudflare provides a shared account allowance of 10,000 Neurons per day; on Workers Free, requests stop at the allowance instead of creating paid overage. This is a quota, not unlimited generation or an uptime guarantee. See [Cloudflare pricing](https://developers.cloudflare.com/workers-ai/platform/pricing/).
+
+For visual continuity, generate the first scene, keep the cast descriptions and art direction fixed, and send that first image as a reference for subsequent scenes. Klein 4B supports reference-image editing and reproducible seeds; Cloudflare documents up to four reference images, each smaller than 512×512. Reference reuse should improve continuity, but character likeness still needs visual testing. See the [official model integration example](https://developers.cloudflare.com/changelog/post/2026-01-15-flux-2-klein-4b-workers-ai/).
+
+Cloudflare requires a free account, its Account ID, and a Workers AI API token. Its [REST setup guide](https://developers.cloudflare.com/workers-ai/get-started/rest-api/) explains token creation. **Cloudflare is a researched next integration, not an image provider currently wired into this app; no live Cloudflare generation has been tested.** The current providers remain OpenAI and Gemini.
+
+Other options reviewed: [Hugging Face Inference Providers](https://huggingface.co/docs/inference-providers/pricing) currently offers free users $0.10 in monthly credits, subject to change, which is a small experimentation budget. [Pollinations](https://github.com/pollinations/pollinations/blob/main/APIDOCS.md) currently requires authentication for generation and applies account/key budgets; it should not be treated as an unlimited anonymous endpoint.
+
 ## Core Concept
 
 Last Light transforms a simple user prompt into an interactive fictional world.

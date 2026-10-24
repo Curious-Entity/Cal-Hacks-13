@@ -24,11 +24,18 @@ function save() {
   catch { storageAvailable = false; }
 }
 function readSetup() {
-  return { premise: $('#premise').value.trim(), protagonist: $('#protagonist').value.trim(), details: $('#story-details').value.trim(), tone: $('#tone').value, artStyle: $('#art-style').value, illustrations: $('#ai-illustrations').checked, illustrationMode:$('#image-frequency').value };
+  return { premise: $('#premise').value.trim(), protagonist: $('#protagonist').value.trim(), details: $('#story-details').value.trim(), tone: $('#tone').value, artStyle: $('#art-style').value, customMood:$('#custom-mood').value.trim(), customArtStyle:$('#custom-art-style').value.trim(), illustrations: $('#ai-illustrations').checked, illustrationMode:$('#image-frequency').value };
+}
+function updatePreferenceFields() {
+  for (const [select,field,input] of [['#tone','#custom-mood-field','#custom-mood'],['#art-style','#custom-art-field','#custom-art-style']]) {
+    const custom=$(select).value==='custom';
+    $(field).hidden=!custom;$(input).disabled=!custom;$(input).required=custom;
+  }
 }
 function fillSetup(setup) {
   if (!setup || typeof setup !== 'object') return;
-  for (const [key, selector] of Object.entries({ premise:'#premise', protagonist:'#protagonist', details:'#story-details', tone:'#tone', artStyle:'#art-style' })) if (typeof setup[key] === 'string') $(selector).value = setup[key];
+  for (const [key, selector] of Object.entries({ premise:'#premise', protagonist:'#protagonist', details:'#story-details', tone:'#tone', artStyle:'#art-style', customMood:'#custom-mood', customArtStyle:'#custom-art-style' })) if (typeof setup[key] === 'string') $(selector).value = setup[key];
+  updatePreferenceFields();
   if (setup.details) $('.story-details').open = true;
 }
 function isSavedJourney(value) {
@@ -143,7 +150,8 @@ function renderStory() {
   $('#generated-narration').replaceChildren(...scene.narration.map(p => element('p',p)));
   $('#generated-location').textContent = scene.location;
   $('#generated-scene-number').textContent = `${String(state.sceneIndex).padStart(2,'0')} / 05`;
-  $('#visual-mood').textContent = state.setup.tone.toUpperCase();
+  const mood=state.setup.tone==='custom' ? state.setup.customMood : state.setup.tone;
+  $('#visual-mood').textContent = mood.toUpperCase();$('#visual-mood').title=mood;
   $('#visual-type').textContent = 'ATMOSPHERIC SCENE';
   // This function emits only our fixed SVG templates and validated hex colors.
   $('#atmospheric-art').innerHTML = sceneArt(scene.visual, state.id + scene.chapterTitle);
@@ -304,6 +312,8 @@ $('#setup-form').addEventListener('submit',async event=>{
 });
 $('#setup-form').addEventListener('input',()=>{ try { localStorage.setItem(DRAFT,JSON.stringify(readSetup())); } catch {} });
 $('#ai-illustrations').addEventListener('change',()=>{$('#image-frequency-field').hidden=!$('#ai-illustrations').checked;});
+$('#tone').addEventListener('change',updatePreferenceFields);
+$('#art-style').addEventListener('change',updatePreferenceFields);
 const examples = {
   ocean: { premise:'I’m a detective in an underwater city where everyone has forgotten yesterday. A letter arrives in my own handwriting, warning me not to trust the sunrise.', protagonist:'A rookie detective who can hear echoes of lost memories', details:'My partner is a nervous octopus. The city runs on bottled sunlight. Make the mystery hopeful, with no combat.' },
   space: { premise:'I’m the last gardener on a spaceship carrying Earth’s final forest. One morning, the trees start growing star maps—and the ship changes course on its own.', protagonist:'A young botanist who has never seen a real sunrise', details:'My only companion is a maintenance robot that secretly writes poetry. Our choices should affect the forest and our friendship.' },
