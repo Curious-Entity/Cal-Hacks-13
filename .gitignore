@@ -6,3 +6,8 @@ __pycache__/
 !.env.example
 playwright-report/
 test-results/
+.sites-runtime/
+.sites-build/
+.wrangler/
+.next/
+last-light/dist/

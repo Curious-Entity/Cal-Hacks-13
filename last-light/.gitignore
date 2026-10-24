@@ -1,0 +1,11 @@
+node_modules/
+dist/
+.env
+.env.*
+!.env.example
+.sites-runtime/
+.sites-build/
+.wrangler/
+.next/
+.DS_Store
+__pycache__/

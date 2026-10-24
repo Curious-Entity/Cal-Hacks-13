@@ -1,9 +1,9 @@
 # Cal Hacks 13
 
-The playable prototype is in **[last-light](last-light/README.md)**.
+The generated choose-your-own-adventure MVP is in **[last-light](last-light/README.md)**.
 
 ```sh
-python3 -m http.server 8000 --directory last-light/dist
+python3 last-light/run.py
 ```
 
-Open **http://localhost:8000**. Edit `last-light/dist/index.html` for structure and `last-light/dist/styles.css` for styling.
+Open the localhost URL printed in the terminal. Configure your Gemini key in the ignored `last-light/.env` file. Edit `last-light/public/adventure.html` for structure and `last-light/public/adventure.css` for styling.
