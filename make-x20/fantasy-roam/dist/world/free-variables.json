@@ -1,0 +1,46 @@
+{
+  "documentType": "free-player-variables",
+  "schemaVersion": "0.1.0",
+  "universeId": "vale-0000",
+  "branchId": "origin",
+  "status": "awaiting-story-api",
+  "description": "Player-facing opportunities in the active universe. Triggering one submits a possible branch event; it does not change the world until the story API returns a resolved next state.",
+  "variables": [
+    {
+      "id": "is_listening_to_well",
+      "label": "Listen to the Moonwell",
+      "sourceLandmark": "moonwell",
+      "trigger": "press_F_when_nearby",
+      "value": false,
+      "eventType": "player_interaction",
+      "prompt": "Press F to listen to the waters"
+    },
+    {
+      "id": "is_touching_fire",
+      "label": "Touch the Emberwatch Fire",
+      "sourceLandmark": "emberwatch-fire",
+      "trigger": "press_F_when_nearby",
+      "value": false,
+      "eventType": "player_contact",
+      "prompt": "Press F to reach toward the fire"
+    },
+    {
+      "id": "is_touching_tree",
+      "label": "Touch the Willowmere Ash Tree",
+      "sourceLandmark": "willowmere-tree",
+      "trigger": "press_F_when_nearby",
+      "value": false,
+      "eventType": "player_contact",
+      "prompt": "Press F to touch the ash tree"
+    },
+    {
+      "id": "is_attuning_to_gate",
+      "label": "Attune to the Veilgate",
+      "sourceLandmark": "veilgate",
+      "trigger": "press_F_when_nearby",
+      "value": false,
+      "eventType": "player_interaction",
+      "prompt": "Press F to attune to the ancient gate"
+    }
+  ]
+}
