@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { newGame, getChoices, takeAction, serializeGame, restoreGame, getView } from '../dist/story.js';
+import { newGame, getChoices, takeAction, serializeGame, restoreGame, getView } from '../public/story.js';
 
 test('all paths reach an ending with consistent replayable memory', () => {
   let endings = new Set(); let paths = 0;
