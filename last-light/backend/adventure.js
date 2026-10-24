@@ -164,7 +164,7 @@ export async function verifyJourney(token, env) {
   }
 }
 
-async function providerCall(env, model, body, fetcher, timeout) {
+export async function providerCall(env, model, body, fetcher, timeout) {
   const apiKey = keyValue(env);
   if (!apiKey) throw new StoryError('Story generation is not connected yet. Add the project’s Gemini API key to continue.', 503, 'NOT_CONFIGURED');
   if (!/^[a-z0-9._-]+$/i.test(model)) throw new StoryError('The project model configuration is invalid.', 503, 'MODEL_CONFIG');
@@ -237,7 +237,7 @@ export async function inspectScene(state,objectId,env,originalToken) {
 
 const storyRequests = new Map();
 const imageRequests = new Map();
-async function once(cache, key, limit, task) {
+export async function once(cache, key, limit, task) {
   const now = Date.now();
   for (const [id, item] of cache) if (item.expires < now) cache.delete(id);
   if (cache.has(key)) return cache.get(key).promise;
@@ -246,7 +246,7 @@ async function once(cache, key, limit, task) {
   cache.set(key, { promise, expires: now + 5 * 60000 });
   return promise;
 }
-async function digest(value) { return url64(new Uint8Array(await crypto.subtle.digest('SHA-256', encoder.encode(value)))); }
+export async function digest(value) { return url64(new Uint8Array(await crypto.subtle.digest('SHA-256', encoder.encode(value)))); }
 const jsonResponse = (data, status = 200) => Response.json(data, { status, headers: { 'cache-control': 'no-store', 'x-content-type-options': 'nosniff' } });
 
 export async function handleAPI(request, env = {}, fetcher = fetch) {
@@ -278,6 +278,7 @@ export async function handleAPI(request, env = {}, fetcher = fetch) {
       return jsonResponse(await once(storyRequests, cacheKey, 32, () => generateScene(setup, null, null, env, fetcher)));
     }
     const previous = await verifyJourney(data.token, env);
+    if (previous.mode==='world') throw new StoryError('Open the 3D world to continue this journey.',400,'WORLD_JOURNEY');
     if (url.pathname.endsWith('/inspect')) return jsonResponse(await inspectScene(previous,data.objectId,env,data.token));
     if (url.pathname.endsWith('/choose')) {
       if (previous.scene.isEnding || previous.sceneIndex >= TOTAL_SCENES) throw new StoryError('This adventure has reached its ending. Begin a new story to play again.');

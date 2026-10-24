@@ -26,7 +26,7 @@ function save() {
   catch { storageAvailable = false; }
 }
 function readSetup() {
-  return { premise: $('#premise').value.trim(), protagonist: $('#protagonist').value.trim(), details: $('#story-details').value.trim(), tone: $('#tone').value, artStyle: $('#art-style').value, customMood:$('#custom-mood').value.trim(), customArtStyle:$('#custom-art-style').value.trim(), illustrations: $('#ai-illustrations').checked, illustrationMode:$('#image-frequency').value };
+  return { experience:$('#experience').value,premise: $('#premise').value.trim(), protagonist: $('#protagonist').value.trim(), details: $('#story-details').value.trim(), tone: $('#tone').value, artStyle: $('#art-style').value, customMood:$('#custom-mood').value.trim(), customArtStyle:$('#custom-art-style').value.trim(), illustrations: $('#experience').value==='illustrated' && $('#ai-illustrations').checked, illustrationMode:$('#image-frequency').value };
 }
 function updatePreferenceFields() {
   for (const [select,field,input] of [['#tone','#custom-mood-field','#custom-mood'],['#art-style','#custom-art-field','#custom-art-style']]) {
@@ -36,7 +36,7 @@ function updatePreferenceFields() {
 }
 function fillSetup(setup) {
   if (!setup || typeof setup !== 'object') return;
-  for (const [key, selector] of Object.entries({ premise:'#premise', protagonist:'#protagonist', details:'#story-details', tone:'#tone', artStyle:'#art-style', customMood:'#custom-mood', customArtStyle:'#custom-art-style' })) if (typeof setup[key] === 'string') $(selector).value = setup[key];
+  for (const [key, selector] of Object.entries({ premise:'#premise', protagonist:'#protagonist', details:'#story-details', tone:'#tone', artStyle:'#art-style', customMood:'#custom-mood', customArtStyle:'#custom-art-style',experience:'#experience' })) if (typeof setup[key] === 'string') $(selector).value = setup[key];
   if (typeof setup.illustrations==='boolean') { $('#ai-illustrations').checked=setup.illustrations;imagePreferencesSaved=true; }
   if (['on-demand','automatic'].includes(setup.illustrationMode)) $('#image-frequency').value=setup.illustrationMode;
   updatePreferenceFields();
@@ -84,6 +84,7 @@ async function refreshConfig() {
     }
     $('#image-frequency-field').hidden = !$('#ai-illustrations').checked;
     $('#image-access-note').textContent = config.illustrations ? `${config.imageProvider === 'cloudflare' ? 'Cloudflare · daily free allowance.' : config.imageProvider === 'openai' ? 'OpenAI · low quality.' : 'AI illustration.'} Paint only when you ask, or once per scene. Saved images are reused.` : 'Atmospheric scenes are included. Connect an image provider to paint additional illustrations.';
+    updateExperience();
   } catch {
     config = null;
     $('#connection-status').classList.remove('ready');$('#connection-status').classList.add('failed');
@@ -327,6 +328,10 @@ $('#setup-form').addEventListener('submit',async event=>{
   await refreshConfig();
   if (!config?.configured) { showError(config ? 'The project’s Gemini connection is not configured yet. Add its API key to begin; the train demo is available now.' : 'Start the app server with python3 last-light/run.py, then open the URL it prints.',true); return; }
   const setup = readSetup();
+  if(setup.experience==='world') {
+    try{sessionStorage.setItem('last-light-world-request',JSON.stringify({setup,requestId:crypto.randomUUID()}));location.assign('/world.html?new=1');}catch{showError('Browser storage is unavailable. Enable storage for this site to create and save your world.',true);}
+    return;
+  }
   const requestId = pending?.type === 'start' && JSON.stringify(pending.payload.setup) === JSON.stringify(setup) ? pending.payload.requestId : crypto.randomUUID();
   runRequest({ type:'start',payload:{ setup,requestId } });
 });
@@ -334,6 +339,8 @@ $('#setup-form').addEventListener('input',event=>{ if (['ai-illustrations','imag
 $('#ai-illustrations').addEventListener('change',()=>{$('#image-frequency-field').hidden=!$('#ai-illustrations').checked;});
 $('#tone').addEventListener('change',updatePreferenceFields);
 $('#art-style').addEventListener('change',updatePreferenceFields);
+function updateExperience(){const world=$('#experience').value==='world';$('.image-option').hidden=world;$('#image-frequency-field').hidden=world||!$('#ai-illustrations').checked;$('#experience-help').textContent=world?'Walk through a small world, discover clues, and shape its story.':'Read one scene at a time, inspect objects, and decide what happens next.';}
+$('#experience').addEventListener('change',updateExperience);
 const examples = {
   ocean: { premise:'I’m a detective in an underwater city where everyone has forgotten yesterday. A letter arrives in my own handwriting, warning me not to trust the sunrise.', protagonist:'A rookie detective who can hear echoes of lost memories', details:'My partner is a nervous octopus. The city runs on bottled sunlight. Make the mystery hopeful, with no combat.' },
   space: { premise:'I’m the last gardener on a spaceship carrying Earth’s final forest. One morning, the trees start growing star maps—and the ship changes course on its own.', protagonist:'A young botanist who has never seen a real sunrise', details:'My only companion is a maintenance robot that secretly writes poetry. Our choices should affect the forest and our friendship.' },
@@ -361,3 +368,6 @@ if (journey) {
   fillSetup(pending.payload.setup); showError('Your opening scene did not finish. Choose “Begin my adventure” to retry the same request.',true);
 }
 refreshConfig();
+updateExperience();
+try{$('#resume-world').hidden=!JSON.parse(localStorage.getItem('last-light-world-v1'))?.journey?.token;}catch{}
+if(new URL(location.href).searchParams.has('create'))showSetup();

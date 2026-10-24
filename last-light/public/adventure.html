@@ -34,6 +34,7 @@
 
         <form id="setup-form" class="setup-card">
           <div class="form-topline"><span class="eyebrow">WRITE YOUR BEGINNING</span><span class="form-step">01 / CREATE</span></div>
+          <div class="experience-field"><label for="experience">How would you like to play?</label><select id="experience" name="experience"><option value="world">Explore a 3D world · WASD + interactions</option><option value="illustrated">Illustrated story · choices + scene images</option></select><p class="field-help" id="experience-help">Walk through a small world, discover clues, and shape its story.</p></div>
           <label for="premise">What’s your adventure?</label>
           <p class="field-help" id="premise-help">Set the world, the situation, or a question you want to explore.</p>
           <textarea id="premise" name="premise" rows="5" minlength="15" maxlength="4000" required aria-describedby="premise-help" placeholder="I’m a detective in an underwater city where everyone has forgotten yesterday. A letter arrives in my own handwriting…"></textarea>
@@ -48,6 +49,7 @@
           <div id="setup-error" class="error-banner" role="alert" hidden></div>
           <button id="begin-button" class="begin-button" type="submit"><span>Begin my adventure</span><span aria-hidden="true">↗</span></button>
           <button id="resume-button" class="resume-button" type="button" hidden>Continue your saved adventure →</button>
+          <a id="resume-world" class="resume-button world-resume-link" href="/world.html" hidden>Return to your saved 3D world →</a>
           <p class="form-footnote">One scene at a time. Your next choice writes the next page.</p>
         </form>
       </section>

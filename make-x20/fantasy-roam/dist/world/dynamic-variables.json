@@ -1,0 +1,28 @@
+{
+  "documentType": "dynamic-world-variables",
+  "schemaVersion": "0.1.0",
+  "universeId": "vale-0000",
+  "branchId": "origin",
+  "parentBranchId": null,
+  "status": "awaiting-story-api",
+  "description": "Mutable facts for the currently active universe. The future story API will create a new version of this document after resolving a player event.",
+  "variables": {
+    "timeline_phase": "arrival",
+    "player_on_fire": false,
+    "village_alarm_active": false,
+    "animals_fleeing": false,
+    "tree_is_burning": false,
+    "veil_stability": "steady",
+    "moonwell_awake": false,
+    "emberwatch_restful": true,
+    "cottage_light_on": true
+  },
+  "visualBindings": {
+    "player_on_fire": "avatar_fire_effect",
+    "village_alarm_active": "alarm_bells_and_warm_warning_lights",
+    "animals_fleeing": "fleeing_creature_behavior",
+    "tree_is_burning": "burning_tree_variant",
+    "veil_stability": "portal_and_fog_intensity"
+  },
+  "eventHistory": []
+}

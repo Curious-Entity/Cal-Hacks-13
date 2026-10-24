@@ -79,6 +79,28 @@ Cloudflare's Workers Free plan provides a shared account allowance of 10,000 Neu
 
 Live Cloudflare generation was verified on October 24, 2026; the first test image took about 37 seconds. Latency varies with service capacity. The [official Klein integration example](https://developers.cloudflare.com/changelog/post/2026-01-15-flux-2-klein-4b-workers-ai/) documents multipart requests and reference inputs. Image descriptions and object clues remain playable while generation runs.
 
+## Explorable 3D world MVP
+
+Choose **Explore a 3D world** on the starting form, describe your setting and protagonist, and keep the existing mood/art-direction controls. Gemini creates a validated world blueprint and its opening quest stage. The browser assembles a compact low-poly level from supported assets; it does not generate arbitrary 3D model files.
+
+- **WASD / arrow keys:** walk; **Shift:** run.
+- **Drag:** turn the camera; **scroll:** zoom.
+- **F near a landmark:** inspect it and save its clue.
+- **E with the landmark panel open:** perform its available story action.
+- **J:** open the journal. Touch devices have on-screen movement and interaction controls.
+
+There are four reachable landmarks and five quest stages. Actions change landmark effects, weather, lighting, NPC positions, and relationships. The map and player position persist between turns. Walking, rendering, and repeat inspections make no model calls. A new AI call is needed only for initial creation or a meaningful story action. World state is signed on the server; save/resume and interrupted-action retries use a separate browser save from the illustrated adventure.
+
+Supported environments are forest, city, space, ocean, desert, mountain, and interior. Supported landmark meshes include trees, wells, campfires, portals, cottages, terminals, towers, crystals, archives, and gardens. Model-generated names and descriptions adapt these to the setting. Supporting characters use reusable humanoid, robot, dragon, small-animal, or octopus forms where their descriptions match. Mood and art preferences influence story, palette, and lighting; they do not create arbitrary new meshes or guarantee a requested raster painting style in 3D.
+
+The existing **Illustrated story** mode and original train demo remain available. World creation needs the Gemini server key; 3D rendering does not use the Cloudflare image API.
+
+### Implementation and attribution
+
+`backend/world.js` validates generated blueprints and quest states; `backend/api.js` routes both story modes. `public/world-engine.js` builds and updates the scene, and `public/world.js` handles exploration, journal, saves, and API events. Tests cover the five-stage quest, immutable landmarks, clue memory, duplicate requests, and invalid/tampered actions.
+
+The team's original `make-x20/fantasy-roam` prototype is retained unchanged. Its procedural scenery, WASD movement, and follow-camera approach informed this implementation. Three.js 0.160.1 is vendored locally (with its MIT license in `public/vendor/THREE-LICENSE.txt`) so gameplay does not depend on loading a runtime CDN. The renderer uses reusable geometry and instanced scenery; map generation returns data rather than executable code.
+
 ## Core Concept
 
 Last Light transforms a simple user prompt into an interactive fictional world.

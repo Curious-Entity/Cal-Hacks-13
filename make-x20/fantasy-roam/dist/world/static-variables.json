@@ -1,0 +1,57 @@
+{
+  "documentType": "static-world-variables",
+  "schemaVersion": "0.1.0",
+  "worldId": "mythic-roam-shimmering-vale",
+  "worldName": "The Shimmering Vale",
+  "description": "Immutable foundations of the world. These values are shared by every timeline and must not be changed by a player action or story branch.",
+  "initialization": {
+    "era": "The Age of Dusk",
+    "worldSeed": "shimmering-vale-001",
+    "startingLocation": "moonwell-glade",
+    "simulationRules": [
+      "A branch is created only after the story API resolves a player event.",
+      "Static variables remain unchanged across all branches.",
+      "A dynamic state describes one specific timeline.",
+      "Free variables are player-facing opportunities, not automatic consequences."
+    ]
+  },
+  "map": {
+    "biomes": ["moonwell-glade", "luminous-thicket", "emberwatch-camp", "willowmere"],
+    "worldBoundary": { "minX": -100, "maxX": 100, "minZ": -100, "maxZ": 100 },
+    "landmarks": [
+      {
+        "id": "moonwell",
+        "name": "Moonwell",
+        "location": { "x": 12, "z": -8 },
+        "role": "memory-source",
+        "interactionIds": ["is_listening_to_well"]
+      },
+      {
+        "id": "emberwatch-fire",
+        "name": "Emberwatch Fire",
+        "location": { "x": 29, "z": -26 },
+        "role": "warmth-and-danger",
+        "interactionIds": ["is_touching_fire"]
+      },
+      {
+        "id": "willowmere-tree",
+        "name": "Willowmere Ash Tree",
+        "location": { "x": -22, "z": -42 },
+        "role": "flammable-story-anchor",
+        "interactionIds": ["is_touching_tree"]
+      },
+      {
+        "id": "veilgate",
+        "name": "The Veilgate",
+        "location": { "x": -39, "z": 31 },
+        "role": "realm-threshold",
+        "interactionIds": ["is_attuning_to_gate"]
+      }
+    ]
+  },
+  "worldRules": {
+    "magicSystem": "The Veil responds to memory, promises, and fire.",
+    "branchModel": "One player action is submitted as an event. The API chooses the next timeline state and available actions.",
+    "visualModel": "The renderer maps dynamic variables to lights, audio, creatures, weather, object variants, and UI."
+  }
+}
