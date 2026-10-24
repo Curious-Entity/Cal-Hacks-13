@@ -63,6 +63,17 @@ def available(port):
             return False
 
 
+def prepare_environment():
+    """Give each checkout its own untracked configuration without replacing it."""
+    template = ROOT / ".env.example"
+    try:
+        with (ROOT / ".env").open("x") as target:
+            target.write(template.read_text())
+        print("Created last-light/.env from the blank template. Add your own API keys there.", flush=True)
+    except FileExistsError:
+        pass
+
+
 def main():
     parser = argparse.ArgumentParser(description="Start the Last Light adventure app")
     parser.add_argument("--port", type=int, help="Choose a specific port (default: first free port from 8000)")
@@ -80,6 +91,7 @@ def main():
         raise RuntimeError("The requested port is in use. Stop the old server with Ctrl+C, or add --port 8011.")
     if args.port is None and port != 8000:
         print(f"Port 8000 is occupied; using {port} for the new app.", flush=True)
+    prepare_environment()
     node = get_node()
     os.chdir(ROOT)
     os.execve(str(node), [str(node), str(ROOT / "server.mjs")], {**os.environ, "PORT": str(port)})

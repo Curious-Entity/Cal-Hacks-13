@@ -15,15 +15,21 @@ Unlike traditional interactive fiction with predefined story branches, Last Ligh
 
 The current app generates a five-scene adventure from your premise, character, tone, and optional world details. Gemini writes only the next scene after your decision. Each scene includes 2–4 inspectable objects with descriptions and clues that carry forward in story memory.
 
-From the repository root:
+To use your own keys, clone this branch and create a local configuration:
 
 ```bash
+git clone --branch feature/openai-scene-objects https://github.com/Curious-Entity/Cal-Hacks-13.git
+cd Cal-Hacks-13
 cp last-light/.env.example last-light/.env
-# Edit last-light/.env locally; add GEMINI_API_KEY and optionally OPENAI_API_KEY.
+# Edit last-light/.env locally; add your own GEMINI_API_KEY and OPENAI_API_KEY.
 python3 last-light/run.py
 ```
 
 Open the URL printed in the terminal. The launcher uses a free port between 8000 and 8010 and finds or downloads a verified Node.js runtime if needed. Keep the terminal open while playing. A static Python HTTP server cannot run the AI endpoints.
+
+Use Python 3.12+ for the launcher. No `npm install` or production build is required for local play. If `.env` is missing, the launcher creates it from the blank template without overwriting an existing file. With Node.js 22.13+ installed, you can also run `cd last-light` followed by `node server.mjs`.
+
+`GEMINI_API_KEY` enables live stories. `OPENAI_API_KEY` enables the selected OpenAI image provider, which also requires API credits and access to the configured image model. Each teammate supplies their own keys. In setup, enable AI illustrations, then press **Illustrate this scene** after starting a story. Object interactions work with both the included atmospheric artwork and AI illustrations.
 
 The original scripted train adventure is available at `/sample.html` and needs no API key.
 

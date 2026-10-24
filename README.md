@@ -19,15 +19,19 @@ Last Light lets players create their own fictional worlds, shape narratives thro
 
 ## Getting Started
 
-From the repository root, run:
+Clone the feature branch, create your local configuration, and start the app:
 
 ```bash
+git clone --branch feature/openai-scene-objects https://github.com/Curious-Entity/Cal-Hacks-13.git
+cd Cal-Hacks-13
+cp last-light/.env.example last-light/.env
+# Open last-light/.env in your editor and add your own API keys.
 python3 last-light/run.py
 ```
 
 Open the local URL printed in your terminal.
 
-Copy `last-light/.env.example` to `last-light/.env` and add your Gemini API key. OpenAI illustrations optionally use `OPENAI_API_KEY` and require API credits. Keep real keys out of the template and Git. See the detailed README for setup instructions.
+Set `GEMINI_API_KEY` for story generation and `OPENAI_API_KEY` for OpenAI illustrations. OpenAI images require API credits and model access. Keys stay in your ignored `.env`; the committed `.env.example` is blank. The launcher creates `.env` automatically if you skip the copy step. No npm install or production build is needed for local play. Python 3.12+ is recommended; alternatively use Node.js 22.13+ with `cd last-light && node server.mjs`.
 
 ## Documentation
 
