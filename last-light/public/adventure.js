@@ -11,6 +11,8 @@ let inspecting = false;
 let inspectedObjectId = null;
 let imageRun = 0;
 let config = null;
+let storyConnection = 'unchecked';
+let imagePreferencesSaved = false;
 let storageAvailable = true;
 const imageInFlight = new Set();
 
@@ -24,11 +26,20 @@ function save() {
   catch { storageAvailable = false; }
 }
 function readSetup() {
-  return { premise: $('#premise').value.trim(), protagonist: $('#protagonist').value.trim(), details: $('#story-details').value.trim(), tone: $('#tone').value, artStyle: $('#art-style').value, illustrations: $('#ai-illustrations').checked, illustrationMode:$('#image-frequency').value };
+  return { premise: $('#premise').value.trim(), protagonist: $('#protagonist').value.trim(), details: $('#story-details').value.trim(), tone: $('#tone').value, artStyle: $('#art-style').value, customMood:$('#custom-mood').value.trim(), customArtStyle:$('#custom-art-style').value.trim(), illustrations: $('#ai-illustrations').checked, illustrationMode:$('#image-frequency').value };
+}
+function updatePreferenceFields() {
+  for (const [select,field,input] of [['#tone','#custom-mood-field','#custom-mood'],['#art-style','#custom-art-field','#custom-art-style']]) {
+    const custom=$(select).value==='custom';
+    $(field).hidden=!custom;$(input).disabled=!custom;$(input).required=custom;
+  }
 }
 function fillSetup(setup) {
   if (!setup || typeof setup !== 'object') return;
-  for (const [key, selector] of Object.entries({ premise:'#premise', protagonist:'#protagonist', details:'#story-details', tone:'#tone', artStyle:'#art-style' })) if (typeof setup[key] === 'string') $(selector).value = setup[key];
+  for (const [key, selector] of Object.entries({ premise:'#premise', protagonist:'#protagonist', details:'#story-details', tone:'#tone', artStyle:'#art-style', customMood:'#custom-mood', customArtStyle:'#custom-art-style' })) if (typeof setup[key] === 'string') $(selector).value = setup[key];
+  if (typeof setup.illustrations==='boolean') { $('#ai-illustrations').checked=setup.illustrations;imagePreferencesSaved=true; }
+  if (['on-demand','automatic'].includes(setup.illustrationMode)) $('#image-frequency').value=setup.illustrationMode;
+  updatePreferenceFields();
   if (setup.details) $('.story-details').open = true;
 }
 function isSavedJourney(value) {
@@ -50,19 +61,32 @@ try {
   if (saved?.pending && ['start','choose'].includes(saved.pending.type) && saved.pending.payload && typeof saved.pending.payload === 'object') pending = saved.pending;
 } catch { /* A malformed save should never prevent a new adventure. */ }
 
+function renderConnectionStatus() {
+  const node=$('#connection-status');
+  node.classList.toggle('ready',Boolean(config?.configured && storyConnection==='verified'));
+  node.classList.toggle('failed',Boolean(config?.configured && storyConnection==='failed'));
+  if (!config?.configured) node.textContent='Live generation is not connected yet. Add the project’s Gemini key, or explore the train demo.';
+  else if (storyConnection==='verified') node.textContent='✧ Your storyteller is connected.';
+  else if (storyConnection==='checking') node.textContent='Checking the story connection and writing your scene…';
+  else if (storyConnection==='failed') node.textContent='The last story request failed. Check the error message before retrying.';
+  else node.textContent='Your story connection will be checked when you begin.';
+}
 async function refreshConfig() {
   try {
     const response = await fetch('/api/config', { cache:'no-store' });
     if (!response.ok) throw new Error('No app server');
     config = await response.json();
-    $('#connection-status').textContent = config.configured ? '✧ The storyteller is ready for your idea.' : 'Live generation is not connected yet. Add the project’s Gemini key, or explore the train demo.';
-    $('#connection-status').classList.toggle('ready', config.configured);
+    renderConnectionStatus();
     $('#ai-illustrations').disabled = !config.illustrations;
     if (!config.illustrations) $('#ai-illustrations').checked = false;
+    else if (config.imageProvider==='cloudflare' && !imagePreferencesSaved) {
+      $('#ai-illustrations').checked=true;$('#image-frequency').value='automatic';
+    }
     $('#image-frequency-field').hidden = !$('#ai-illustrations').checked;
-    $('#image-access-note').textContent = config.illustrations ? `${config.imageProvider === 'openai' ? 'OpenAI · low quality.' : 'AI illustration.'} Paint only when you ask, or once per scene. Saved images are reused.` : 'Atmospheric scenes are included. Connect an image provider to paint additional illustrations.';
+    $('#image-access-note').textContent = config.illustrations ? `${config.imageProvider === 'cloudflare' ? 'Cloudflare · daily free allowance.' : config.imageProvider === 'openai' ? 'OpenAI · low quality.' : 'AI illustration.'} Paint only when you ask, or once per scene. Saved images are reused.` : 'Atmospheric scenes are included. Connect an image provider to paint additional illustrations.';
   } catch {
     config = null;
+    $('#connection-status').classList.remove('ready');$('#connection-status').classList.add('failed');
     $('#connection-status').textContent = 'The story server is unavailable. Start the app with python3 last-light/run.py, then use the URL it prints.';
     $('#image-access-note').textContent = 'Atmospheric vector scenes are included with every adventure.';
   }
@@ -96,7 +120,7 @@ async function post(path, payload, timeout = 125000) {
   let data;
   try { data = await response.json(); }
   catch { throw new Error('The story server could not be reached. Use the app server from python3 last-light/run.py.'); }
-  if (!response.ok) throw new Error(data.error || 'This scene could not be completed. Please retry.');
+  if (!response.ok) {const error=new Error(data.error || 'This scene could not be completed. Please retry.');error.code=data.code;throw error;}
   return data;
 }
 
@@ -105,15 +129,18 @@ async function runRequest(request) {
   const inSetup = request.type === 'start';
   pending = request; save();
   $('#setup-error').hidden = true; $('#turn-error').hidden = true; $('#retry-turn').hidden = true;
+  storyConnection='checking';renderConnectionStatus();
   setBusy(true);
   try {
     const next = await post(`/api/story/${request.type}`, request.payload);
     if (!isSavedJourney(next)) throw new Error('The new scene could not be read. Please retry.');
+    storyConnection='verified';renderConnectionStatus();
     journey = next; pending = null; save();
     renderStory(); showStory();
     await loadVisual(journey.state.setup.illustrationMode === 'automatic');
     $('#generated-choices button')?.focus({ preventScroll:true });
   } catch (error) {
+    storyConnection='failed';renderConnectionStatus();
     showError(error.message, inSetup);
     if (!inSetup) $('#retry-turn').hidden = false;
   } finally { setBusy(false); }
@@ -143,7 +170,8 @@ function renderStory() {
   $('#generated-narration').replaceChildren(...scene.narration.map(p => element('p',p)));
   $('#generated-location').textContent = scene.location;
   $('#generated-scene-number').textContent = `${String(state.sceneIndex).padStart(2,'0')} / 05`;
-  $('#visual-mood').textContent = state.setup.tone.toUpperCase();
+  const mood=state.setup.tone==='custom' ? state.setup.customMood : state.setup.tone;
+  $('#visual-mood').textContent = mood.toUpperCase();$('#visual-mood').title=mood;
   $('#visual-type').textContent = 'ATMOSPHERIC SCENE';
   // This function emits only our fixed SVG templates and validated hex colors.
   $('#atmospheric-art').innerHTML = sceneArt(scene.visual, state.id + scene.chapterTitle);
@@ -261,11 +289,11 @@ function displayImage(data, state) {
   $('#generated-art').hidden = false; $('#visual-type').textContent = 'AI SCENE ILLUSTRATION';
   $('#illustrate-scene').hidden=true;
 }
-async function imageReference(dataUrl) {
+async function imageReference(dataUrl, maximumDimension = 768) {
   if (!validImage(dataUrl)) return null;
   try {
     const image = new Image(); image.src = dataUrl; await image.decode();
-    const canvas = document.createElement('canvas'); const scale = Math.min(1,768/image.width);
+    const canvas = document.createElement('canvas'); const scale = Math.min(1,maximumDimension/Math.max(image.width,image.height));
     canvas.width = Math.round(image.width*scale); canvas.height = Math.round(image.height*scale);
     canvas.getContext('2d').drawImage(image,0,0,canvas.width,canvas.height);
     return { mimeType:'image/jpeg',data:canvas.toDataURL('image/jpeg',.75).split(',')[1] };
@@ -283,7 +311,7 @@ async function loadVisual(generateIfMissing = false) {
     $('#illustrate-scene').hidden=false;return;
   }
   imageInFlight.add(key); $('#image-progress').hidden = false; $('#image-error').hidden = true;$('#illustrate-scene').hidden=true;
-  const reference = config?.imageReferences && state.sceneIndex > 1 ? await imageReference(await imageStore(`${state.id}:1`)) : null;
+  const reference = config?.imageReferences && state.sceneIndex > 1 ? await imageReference(await imageStore(`${state.id}:1`),config.imageReferenceMaxDimension || 768) : null;
   // Image generation runs separately; choices remain available while it paints.
   post('/api/story/image',{ token:current.token, ...(reference ? {reference} : {}) }).then(async result=>{
     if (!validImage(result.dataUrl)) throw new Error('The illustration could not be displayed.');
@@ -302,8 +330,10 @@ $('#setup-form').addEventListener('submit',async event=>{
   const requestId = pending?.type === 'start' && JSON.stringify(pending.payload.setup) === JSON.stringify(setup) ? pending.payload.requestId : crypto.randomUUID();
   runRequest({ type:'start',payload:{ setup,requestId } });
 });
-$('#setup-form').addEventListener('input',()=>{ try { localStorage.setItem(DRAFT,JSON.stringify(readSetup())); } catch {} });
+$('#setup-form').addEventListener('input',event=>{ if (['ai-illustrations','image-frequency'].includes(event.target.id)) imagePreferencesSaved=true;try { localStorage.setItem(DRAFT,JSON.stringify(readSetup())); } catch {} });
 $('#ai-illustrations').addEventListener('change',()=>{$('#image-frequency-field').hidden=!$('#ai-illustrations').checked;});
+$('#tone').addEventListener('change',updatePreferenceFields);
+$('#art-style').addEventListener('change',updatePreferenceFields);
 const examples = {
   ocean: { premise:'I’m a detective in an underwater city where everyone has forgotten yesterday. A letter arrives in my own handwriting, warning me not to trust the sunrise.', protagonist:'A rookie detective who can hear echoes of lost memories', details:'My partner is a nervous octopus. The city runs on bottled sunlight. Make the mystery hopeful, with no combat.' },
   space: { premise:'I’m the last gardener on a spaceship carrying Earth’s final forest. One morning, the trees start growing star maps—and the ship changes course on its own.', protagonist:'A young botanist who has never seen a real sunrise', details:'My only companion is a maintenance robot that secretly writes poetry. Our choices should affect the forest and our friendship.' },

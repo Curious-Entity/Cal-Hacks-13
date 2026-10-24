@@ -1,5 +1,6 @@
 node_modules/
 dist/
+# Each teammate keeps credentials locally. Commit only the blank template.
 .env
 .env.*
 !.env.example
