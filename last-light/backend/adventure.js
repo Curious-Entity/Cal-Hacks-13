@@ -1,15 +1,14 @@
 // Portable server-side story engine. Used by the local server and hosted Worker.
 // The browser receives a signed journey; a choice cannot rewrite its past.
+import { StoryError } from './errors.js';
+import { imageConfiguration, illustrationPrompt, validateReference, checkedImage, generateOpenAIImage } from './images.js';
+export { StoryError } from './errors.js';
 export const TOTAL_SCENES = 5;
 export const TEXT_MODEL = 'gemini-3.5-flash-lite';
 export const IMAGE_MODEL = 'gemini-nano-banana-2.1';
 const MODEL_ROOT = 'https://generativelanguage.googleapis.com/v1beta/models/';
 const encoder = new TextEncoder();
 const decoder = new TextDecoder();
-
-export class StoryError extends Error {
-  constructor(message, status = 400, code = 'INVALID_REQUEST') { super(message); this.status = status; this.code = code; }
-}
 
 function string(value, label, max, min = 0) {
   if (typeof value !== 'string' || value.trim().length < min || value.length > max) throw new StoryError(`${label} must contain ${min}–${max} characters.`);
@@ -22,12 +21,14 @@ export function validateSetup(input) {
   if (!input || typeof input !== 'object') throw new StoryError('Describe the adventure you want to play.');
   const tone = input.tone || 'cinematic';
   const artStyle = input.artStyle || 'illustrated';
+  const illustrationMode = input.illustrationMode || 'on-demand';
+  if (!['on-demand','automatic'].includes(illustrationMode)) throw new StoryError('Choose when to generate illustrations.');
   if (!['cinematic','wonder','mysterious','cozy'].includes(tone) || !['illustrated','watercolor','noir'].includes(artStyle)) throw new StoryError('Choose one of the available tones and art styles.');
   return {
     premise: string(input.premise, 'Your idea', 4000, 15),
     details: string(input.details || '', 'Story details', 2000),
     protagonist: string(input.protagonist || '', 'Your character', 120), tone, artStyle,
-    illustrations: input.illustrations === true,
+    illustrations: input.illustrations === true, illustrationMode,
   };
 }
 
@@ -41,6 +42,7 @@ export function sceneSchema(index) {
     choices: arrayOf(object({ id: field(48), label: field(100), hint: field(160) }), index === TOTAL_SCENES ? 0 : 3, index === TOTAL_SCENES ? 0 : 2),
     characters: arrayOf(object({ id: field(48), name: field(60), description: field(240), appearance: field(400), relationship: field(180) }), 3, 1),
     memorySummary: field(2200), newFacts: arrayOf(field(220), 4), imagePrompt: field(1200),
+    objects: arrayOf(object({id:field(48),label:field(45),icon:{type:'string',enum:['letter','radio','key','book','terminal','map','bag','lamp','door','object']},description:field(650),clue:field(220)}),4,2),
     visual: object({
       setting: { type: 'string', enum: ['space','city','forest','ocean','desert','mountain','interior'] },
       sky: field(7), accent: field(7), foreground: field(7),
@@ -59,6 +61,12 @@ export function validateScene(raw, index, previous = null) {
     if (!Array.isArray(raw.choices) || (final ? raw.choices.length !== 0 : raw.choices.length < 2 || raw.choices.length > 3)) throw new Error('Missing choices');
     if (!Array.isArray(raw.characters) || raw.characters.length < 1 || raw.characters.length > 3) throw new Error('Missing characters');
     if (!Array.isArray(raw.newFacts) || raw.newFacts.length > 4) throw new Error('Invalid facts');
+    if (!Array.isArray(raw.objects) || raw.objects.length < 2 || raw.objects.length > 4) throw new Error('Missing inspectable objects');
+    const objects = raw.objects.map(item=>({
+      id:slug(item.id,'object ID'),label:string(item.label,'Object label',45,1),
+      icon:item.icon,description:string(item.description,'Object description',650,1),clue:string(item.clue,'Object clue',220,1),
+    }));
+    if (objects.some(item=>!['letter','radio','key','book','terminal','map','bag','lamp','door','object'].includes(item.icon)) || new Set(objects.map(item=>item.id)).size !== objects.length) throw new Error('Invalid objects');
     const choices = raw.choices.map(c => ({ id: slug(c.id, 'choice ID'), label: string(c.label, 'Choice', 100, 1), hint: string(c.hint, 'Choice hint', 160, 1) }));
     if (new Set(choices.map(c => c.id)).size !== choices.length) throw new Error('Duplicate choice');
     let characters = raw.characters.map(c => ({ id: slug(c.id, 'character ID'), name: string(c.name, 'Name', 60, 1), description: string(c.description, 'Description', 240, 1), appearance: string(c.appearance, 'Appearance', 400, 1), relationship: string(c.relationship, 'Relationship', 180, 1) }));
@@ -76,6 +84,7 @@ export function validateScene(raw, index, previous = null) {
       chapterTitle: string(raw.chapterTitle, 'Chapter title', 90, 1), location: string(raw.location, 'Location', 100, 1),
       narration: raw.narration.map(p => string(p, 'Narration', 850, 1)), choices, characters,
       memorySummary: string(raw.memorySummary, 'Summary', 2200, 1), newFacts: raw.newFacts.map(f => string(f, 'Fact', 220, 1)),
+      objects,
       imagePrompt: string(raw.imagePrompt, 'Image prompt', 1200, 1),
       visual: { setting: visual.setting, sky: visual.sky, accent: visual.accent, foreground: visual.foreground, timeOfDay: visual.timeOfDay }, isEnding: final,
     };
@@ -95,6 +104,9 @@ After the first scene, return the same character roster, updating relationships 
 Honor established facts, inventory, and character knowledge. Never undo a meaningful choice without a story reason.
 The memorySummary is a compact cumulative account of established facts, player decisions, items, and who knows what; no future plan or hidden chain of thought.
 newFacts contains only up to four newly established facts from the current scene, phrased for the player's journal.
+Each scene must contain 2–4 concrete objects the player can inspect, such as a radio, letter, map, key, or scene-appropriate equivalent. Give each a stable lowercase slug ID, a short label, a supported icon type, a sensory description, and a specific useful clue.
+The description and clue must be about THIS scene and must not advance the story or decide an action for the player.
+Do not put hidden object contents or inspection-only clues in newFacts or memorySummary before the player inspects them. Inspecting an object reveals its clue only to the player; NPCs do not automatically learn it.
 imagePrompt describes only the CURRENT visible scene, including the setting and present characters, with no UI, captions, or spoilers.
 visual supplies a supported setting type and coherent six-digit hex colors for an atmospheric illustration.
 Return only the requested JSON object. All strings are plain text, never HTML or Markdown.`;
@@ -107,6 +119,7 @@ export function buildScenePrompt(setup, previous = null, selected = null) {
       storyTitle: previous.title, characters: previous.characters,
       establishedMemory: previous.summary, establishedFacts: previous.facts,
       decisionsSoFar: previous.history,
+      objectsExamined: previous.discoveries || [],
       previousScene: { title: previous.scene.chapterTitle, narration: previous.scene.narration },
       chosenAction: selected,
       instruction: 'Resolve THIS chosen action and create only its next scene. Explicitly acknowledge at least one earlier decision where relevant.',
@@ -187,23 +200,36 @@ export async function generateScene(setup, previous, selected, env, fetcher = fe
     version: 2, id: previous?.id || crypto.randomUUID(), setup, title: checked.storyTitle,
     sceneIndex: index, totalScenes: TOTAL_SCENES, characters: checked.characters,
     scene: checked, history, facts, summary: checked.memorySummary,
+    discoveries: previous?.discoveries || [],
   };
   return { state, token: await signJourney(state, env) };
 }
 
 export async function generateImage(state, env, reference, fetcher = fetch) {
-  if (env.ENABLE_IMAGE_GENERATION !== 'true' || !state.setup.illustrations) throw new StoryError('AI illustrations are not enabled for this project. Your atmospheric scene and story remain available.', 403, 'IMAGES_DISABLED');
-  const parts = [{ text: `Create a single landscape illustration for an interactive story. Style: ${state.setup.artStyle}. Tone: ${state.setup.tone}. Keep the same art direction and character appearances throughout. No text, lettering, UI, watermarks, or panels. Scene: ${state.scene.imagePrompt}\nCharacter reference descriptions: ${JSON.stringify(state.characters.map(c => ({ name: c.name, appearance: c.appearance })))}. If a reference image is supplied, use it for visual continuity, but depict the CURRENT scene.` }];
+  const config=imageConfiguration(env);
+  if (!config.enabled || !state.setup.illustrations) throw new StoryError('AI illustrations are not enabled for this project. Your atmospheric scene and story remain available.', 403, 'IMAGES_DISABLED');
+  if (config.provider === 'openai') return generateOpenAIImage(state,env,reference,fetcher);
+  const parts = [{ text: illustrationPrompt(state) }];
   if (reference) {
-    if (!['image/png','image/jpeg','image/webp'].includes(reference.mimeType) || typeof reference.data !== 'string' || reference.data.length > 2500000 || !/^[A-Za-z0-9+/]+=*$/.test(reference.data)) throw new StoryError('The illustration reference is invalid.');
+    validateReference(reference);
     parts.push({ inlineData: { mimeType: reference.mimeType, data: reference.data } });
   }
   const result = await providerCall(env, env.GEMINI_IMAGE_MODEL || IMAGE_MODEL, {
     contents: [{ role: 'user', parts }], generationConfig: { responseModalities: ['TEXT','IMAGE'], imageConfig: { aspectRatio: '16:9', imageSize: '1K' } },
   }, fetcher, 110000);
   const image = result.candidates?.[0]?.content?.parts?.find(p => p.inlineData)?.inlineData;
-  if (!image || !['image/png','image/jpeg','image/webp'].includes(image.mimeType) || typeof image.data !== 'string' || image.data.length > 12000000 || !/^[A-Za-z0-9+/]+=*$/.test(image.data)) throw new StoryError('The illustration could not be completed. Continue playing or retry the image.', 502, 'IMAGE_FAILED');
-  return { dataUrl: `data:${image.mimeType};base64,${image.data}` };
+  return { dataUrl: checkedImage(image?.data,image?.mimeType),provider:'gemini' };
+}
+
+export async function inspectScene(state,objectId,env,originalToken) {
+  const item=(state.scene.objects || []).find(object=>object.id === objectId);
+  if (!item) throw new StoryError('That object is not in the current scene.');
+  if ((state.discoveries || []).some(found=>found.scene === state.sceneIndex && found.id === item.id)) return {state,token:originalToken};
+  const next={...state,
+    discoveries:[...(state.discoveries || []),{scene:state.sceneIndex,id:item.id,label:item.label,clue:item.clue}],
+    facts:[...new Set([...state.facts,item.clue])].slice(-20),
+  };
+  return {state:next,token:await signJourney(next,env)};
 }
 
 const storyRequests = new Map();
@@ -223,10 +249,11 @@ const jsonResponse = (data, status = 200) => Response.json(data, { status, heade
 export async function handleAPI(request, env = {}, fetcher = fetch) {
   const url = new URL(request.url);
   try {
-    if (url.pathname === '/api/config' && request.method === 'GET') return jsonResponse({
-      configured: Boolean(keyValue(env)), illustrations: env.ENABLE_IMAGE_GENERATION === 'true' && Boolean(keyValue(env)), totalScenes: TOTAL_SCENES,
-    });
-    if (!['/api/story/start','/api/story/choose','/api/story/image'].includes(url.pathname)) return jsonResponse({ error: 'Endpoint not found.' }, 404);
+    if (url.pathname === '/api/config' && request.method === 'GET') {
+      const images=imageConfiguration(env);
+      return jsonResponse({configured:Boolean(keyValue(env)),illustrations:images.enabled,imageProvider:images.provider,imageReferences:images.references,totalScenes:TOTAL_SCENES});
+    }
+    if (!['/api/story/start','/api/story/choose','/api/story/image','/api/story/inspect'].includes(url.pathname)) return jsonResponse({ error: 'Endpoint not found.' }, 404);
     if (request.method !== 'POST') return new Response('Method not allowed', { status: 405, headers: { allow: 'POST' } });
     const origin = request.headers.get('origin');
     if (origin && origin !== url.origin) throw new StoryError('Open the adventure on its own site to continue.', 403);
@@ -242,12 +269,13 @@ export async function handleAPI(request, env = {}, fetcher = fetch) {
     const scope = await digest(keyValue(env));
     if (url.pathname.endsWith('/start')) {
       const setup = validateSetup(data.setup);
-      if (setup.illustrations && env.ENABLE_IMAGE_GENERATION !== 'true') throw new StoryError('AI illustrations are not enabled. Turn that option off to create a text adventure.');
+      if (setup.illustrations && !imageConfiguration(env).enabled) throw new StoryError('AI illustrations are not connected yet. Turn that option off to create an adventure with atmospheric scenes.');
       const requestId = string(data.requestId, 'Request ID', 80, 8);
       const cacheKey = await digest(scope + JSON.stringify({ setup, requestId }));
       return jsonResponse(await once(storyRequests, cacheKey, 32, () => generateScene(setup, null, null, env, fetcher)));
     }
     const previous = await verifyJourney(data.token, env);
+    if (url.pathname.endsWith('/inspect')) return jsonResponse(await inspectScene(previous,data.objectId,env,data.token));
     if (url.pathname.endsWith('/choose')) {
       if (previous.scene.isEnding || previous.sceneIndex >= TOTAL_SCENES) throw new StoryError('This adventure has reached its ending. Begin a new story to play again.');
       const selected = previous.scene.choices.find(c => c.id === data.choiceId);
@@ -255,7 +283,10 @@ export async function handleAPI(request, env = {}, fetcher = fetch) {
       const cacheKey = await digest(scope + data.token + selected.id);
       return jsonResponse(await once(storyRequests, cacheKey, 32, () => generateScene(previous.setup, previous, selected, env, fetcher)));
     }
-    const cacheKey = await digest(scope + data.token);
+    // Object inspections change the journey token, but never regenerate the image.
+    const images=imageConfiguration(env);
+    const imageScope=await digest(images.provider === 'openai' ? env.OPENAI_API_KEY || '' : keyValue(env));
+    const cacheKey = await digest(imageScope+JSON.stringify({id:previous.id,index:previous.sceneIndex,prompt:previous.scene.imagePrompt,style:previous.setup.artStyle,images}));
     return jsonResponse(await once(imageRequests, cacheKey, 3, () => generateImage(previous, env, data.reference, fetcher)));
   } catch (error) {
     if (error instanceof StoryError) return jsonResponse({ error: error.message, code: error.code }, error.status);

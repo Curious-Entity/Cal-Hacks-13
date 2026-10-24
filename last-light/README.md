@@ -13,23 +13,41 @@ Unlike traditional interactive fiction with predefined story branches, Last Ligh
 
 ### Current Playable Prototype
 
-The current prototype is a playable, scripted interactive story set aboard a mysterious night train.
+The current app generates a five-scene adventure from your premise, character, tone, and optional world details. Gemini writes only the next scene after your decision. Each scene includes 2–4 inspectable objects with descriptions and clues that carry forward in story memory.
 
-To run it locally, navigate to the repository root:
+From the repository root:
 
 ```bash
-python3 -m http.server 8000 --directory last-light/dist
+cp last-light/.env.example last-light/.env
+# Edit last-light/.env locally; add GEMINI_API_KEY and optionally OPENAI_API_KEY.
+python3 last-light/run.py
 ```
 
-Open http://localhost:8000 in your browser.
+Open the URL printed in the terminal. The launcher uses a free port between 8000 and 8010 and finds or downloads a verified Node.js runtime if needed. Keep the terminal open while playing. A static Python HTTP server cannot run the AI endpoints.
 
-No API key or additional installation is required for the current prototype.
+The original scripted train adventure is available at `/sample.html` and needs no API key.
 
-### Public Demo
+### Hosted Demo
 
-Public demo URL: Coming soon.
+[Open Last Light](https://last-light-calhacks-thirteen.awaregoat514.chatgpt.site). The hosted demo is currently private to its owner.
 
-The existing prototype will remain available as a baseline while AI-powered storytelling features are developed.
+### Optional AI illustrations
+
+Keep real credentials only in the ignored `.env` file. Never put keys in `.env.example`, browser JavaScript, screenshots, or Git commits.
+
+```dotenv
+GEMINI_API_KEY=your_gemini_key
+OPENAI_API_KEY=your_openai_key
+IMAGE_PROVIDER=openai
+ENABLE_IMAGE_GENERATION=true
+OPENAI_IMAGE_USE_REFERENCE=false
+```
+
+Enable AI illustrations in the setup form. **Only when I ask** is the default: press **Illustrate this scene** when you want an image, or choose one image per scene. OpenAI uses `gpt-image-2.5-flare`, low quality, one 1024×1024 JPEG per request. Images are stored in the browser and reused on reload. Reference-image input is off by default to reduce input cost; it can be enabled with `OPENAI_IMAGE_USE_REFERENCE=true`.
+
+OpenAI API credits are required separately. A missing-credit, access, or rate-limit error leaves the atmospheric artwork, clickable objects, saved story, and decisions available. Add API credits and use **Retry image** when ready. See the [official image guide](https://developers.openai.com/api/docs/guides/image-generation) for current pricing and supported options.
+
+The clickable props use a separate SVG foreground layer, so their hit areas remain aligned across screen sizes. Their descriptions and clues arrive with the story; inspecting them makes no additional model or image call.
 
 ## Core Concept
 
@@ -39,7 +57,7 @@ The intended experience follows five steps:
 
 1. **World Generation** — Users describe the world they want to explore.
 2. **Character Creation** — AI generates characters, relationships, and a central conflict.
-3. **Interactive Storytelling** — Players influence the narrative through choices and free-text actions.
+3. **Interactive Storytelling** — Players influence the narrative through choices and inspect objects for clues. Free-text actions are a future extension.
 4. **Persistent Memory** — Important decisions, events, and world rules carry forward into later chapters.
 5. **Dynamic Endings** — The story reaches a coherent ending shaped by the player's previous actions.
 
@@ -66,9 +84,9 @@ For example, choosing to use magic may open the archive but permanently remove a
 
 The system should remember this consequence and incorporate it into subsequent chapters.
 
-## Planned AI Architecture
+## AI Architecture
 
-The intended AI storytelling pipeline is:
+The current MVP storytelling pipeline is:
 
 ```text
 User Prompt
@@ -83,7 +101,7 @@ World State
 Story Engine
     |
     v
-Player Choice / Free-Text Action
+Player Choice + Discovered Clues
     |
     v
 State & Memory Update
@@ -143,36 +161,21 @@ The final chapter should resolve the central conflict using the player's accumul
 
 ## Current Implementation
 
-The existing playable prototype includes:
+The generated adventure includes:
 
-- A custom illustrated 2D train environment
-- Three scripted story chapters
-- Interactive characters and objects
-- Twelve main decision paths
-- Three predefined endings
-- Character trust and relationship tracking
-- Persistent event memory
-- Browser-based save and resume
-- Responsive layout and keyboard-accessible controls
-- Optional locally generated ambient audio
+- User-defined premise, protagonist, tone, art style, and optional world details
+- Gemini scene generation with validated JSON and a stable supporting cast
+- Five scenes, 2–3 choices per turn, and an ending shaped by previous decisions
+- 2–4 clickable objects per scene, a discovery journal, and clues in next-scene context
+- Atmospheric vector artwork and optional OpenAI or Gemini illustrations
+- Signed story state, browser save/resume, and retryable API errors
+- Responsive layouts and keyboard-accessible controls
 
-The current story is authored in JavaScript and does not yet use a language model.
+The original train demo retains three authored chapters, twelve main decision paths, three endings, character relationships, and optional ambient audio.
 
-The scripted implementation provides a working baseline for developing and testing the AI-powered version.
+## Planned MVP Extensions
 
-## Planned MVP Features
-
-The following features are development goals and are not yet part of the current scripted prototype:
-
-- User-defined world prompts
-- AI-generated world settings and characters
-- AI-generated story chapters
-- Free-text player actions
-- Dynamic narrative progression
-- Consistency checks against world rules
-- AI-generated endings based on accumulated decisions
-
-The team will prioritize a complete, reliable end-to-end experience over additional visual effects or unnecessary complexity.
+Free-text player actions, deeper inventory mechanics, and stronger consistency checks remain development goals. The current MVP uses generated choice buttons rather than arbitrary actions.
 
 ## Project Structure
 
@@ -180,54 +183,32 @@ The team will prioritize a complete, reliable end-to-end experience over additio
 Cal-Hacks-13/
 ├── README.md
 └── last-light/
-    ├── README.md
-    ├── package.json
-    ├── dist/
-    │   ├── index.html
-    │   ├── styles.css
-    │   ├── app.js
-    │   ├── story.js
-    │   └── carriage.svg
-    └── tests/
-        └── story.test.js
+    ├── run.py                  # Local launcher
+    ├── server.mjs              # Local HTTP + API server
+    ├── backend/                # Shared story, inspection, and image handlers
+    ├── public/                 # HTML/CSS/JS, scene art, original train demo
+    ├── worker/index.ts         # Hosted API entrypoint
+    ├── .env.example            # Placeholder configuration only
+    └── tests/                  # Story, API, object, and image tests
 ```
-
-This structure describes the existing scripted prototype. Additional server and AI integration files may be introduced during development.
 
 ## Getting Started
 
-### Run the Prototype
-
-From the repository root:
+Run from the repository root:
 
 ```bash
-python3 -m http.server 8000 --directory last-light/dist
+python3 last-light/run.py
 ```
 
-Then open:
-
-http://localhost:8000
-
-Press `Ctrl+C` to stop the local server.
+Open the printed URL. Press `Ctrl+C` to stop. If a port is occupied, the launcher selects another one; `--port 8001` requests a specific port.
 
 ### Run Tests
 
-Navigate to the application directory:
-
 ```bash
-cd last-light
-npm test
+python3 last-light/run.py --test
 ```
 
-The existing automated tests cover:
-
-- Main story paths and endings
-- Memory persistence
-- Radio interactions
-- Character relationships
-- Invalid actions and saved states
-
-These tests cover the scripted prototype, not future AI-generated content.
+Tests cover original train paths, generated story progression, signed saves, object inspections and clue memory, image request settings and reuse, invalid output, API errors, and credential-free environment templates. Provider responses are mocked in the automated suite, so tests consume no API credits.
 
 ## Technology Stack
 
@@ -240,9 +221,10 @@ These tests cover the scripted prototype, not future AI-generated content.
 - Browser localStorage
 - SVG illustrations
 
-### Planned AI Integration
+### AI Integration
 
-- LLM API (Gemini, Claude, or another available provider)
+- Gemini API for structured scene generation
+- OpenAI Images API for optional low-quality JPEG illustrations (Gemini image provider also supported)
 - Server-side model integration
 - Structured JSON responses
 - Persistent world and story state
@@ -253,8 +235,8 @@ API keys must remain on the server and must never be embedded in frontend JavaSc
 ## Development Priorities
 
 1. Preserve a working interactive prototype.
-2. Integrate dynamic AI story generation.
-3. Support user-created worlds.
+2. Refine dynamic AI story generation.
+3. Improve user-created worlds and scene exploration.
 4. Add meaningful free-text actions.
 5. Maintain story consistency and memory.
 6. Generate coherent endings.

@@ -14,7 +14,8 @@ Last Light lets players create their own fictional worlds, shape narratives thro
 - **Story Memory:** Carry important events, character relationships, and decisions into future scenes.
 - **Five-Scene Adventures:** Experience a complete interactive story with a conclusion.
 - **Save & Resume:** Continue your adventure across browser sessions.
-- **Interactive Visuals:** Atmospheric scene illustrations and a playable train-story prototype.
+- **Scene Exploration:** Click objects to reveal clues that influence the next scene.
+- **Interactive Visuals:** Atmospheric artwork, optional on-demand OpenAI illustrations, and the original train demo.
 
 ## Getting Started
 
@@ -26,7 +27,7 @@ python3 last-light/run.py
 
 Open the local URL printed in your terminal.
 
-For AI generation, configure your Gemini API key in the ignored `last-light/.env` file. See the detailed README for setup instructions.
+Copy `last-light/.env.example` to `last-light/.env` and add your Gemini API key. OpenAI illustrations optionally use `OPENAI_API_KEY` and require API credits. Keep real keys out of the template and Git. See the detailed README for setup instructions.
 
 ## Documentation
 

@@ -1,4 +1,5 @@
 import { sceneArt } from './scene-art.js';
+import { objectIcon, objectPositions } from './scene-objects.js';
 
 const $ = selector => document.querySelector(selector);
 const SAVE = 'last-light-generated-v2';
@@ -6,6 +7,8 @@ const DRAFT = 'last-light-setup-v2';
 let journey = null;
 let pending = null;
 let busy = false;
+let inspecting = false;
+let inspectedObjectId = null;
 let imageRun = 0;
 let config = null;
 let storageAvailable = true;
@@ -21,7 +24,7 @@ function save() {
   catch { storageAvailable = false; }
 }
 function readSetup() {
-  return { premise: $('#premise').value.trim(), protagonist: $('#protagonist').value.trim(), details: $('#story-details').value.trim(), tone: $('#tone').value, artStyle: $('#art-style').value, illustrations: $('#ai-illustrations').checked };
+  return { premise: $('#premise').value.trim(), protagonist: $('#protagonist').value.trim(), details: $('#story-details').value.trim(), tone: $('#tone').value, artStyle: $('#art-style').value, illustrations: $('#ai-illustrations').checked, illustrationMode:$('#image-frequency').value };
 }
 function fillSetup(setup) {
   if (!setup || typeof setup !== 'object') return;
@@ -56,7 +59,8 @@ async function refreshConfig() {
     $('#connection-status').classList.toggle('ready', config.configured);
     $('#ai-illustrations').disabled = !config.illustrations;
     if (!config.illustrations) $('#ai-illustrations').checked = false;
-    $('#image-access-note').textContent = config.illustrations ? 'Optional. One generated image per scene; your story appears first.' : 'Atmospheric vector scenes are included. AI image generation needs separate model access.';
+    $('#image-frequency-field').hidden = !$('#ai-illustrations').checked;
+    $('#image-access-note').textContent = config.illustrations ? `${config.imageProvider === 'openai' ? 'OpenAI · low quality.' : 'AI illustration.'} Paint only when you ask, or once per scene. Saved images are reused.` : 'Atmospheric scenes are included. Connect an image provider to paint additional illustrations.';
   } catch {
     config = null;
     $('#connection-status').textContent = 'The story server is unavailable. Start the app with python3 last-light/run.py, then use the URL it prints.';
@@ -68,12 +72,18 @@ function setBusy(value) {
   busy = value;
   $('#begin-button').disabled = value;
   $('#begin-button span').textContent = value ? 'Writing your opening scene…' : 'Begin my adventure';
-  $('#new-adventure').disabled = value;
+  $('#new-adventure').disabled = value || inspecting;
   $('#resume-button').disabled = value;
   $('#turn-loading').hidden = !value;
   $('.generated-panel').setAttribute('aria-busy', String(value));
-  document.querySelectorAll('#generated-choices button').forEach(button => { button.disabled = value; });
+  document.querySelectorAll('#generated-choices button, #scene-objects button').forEach(button => { button.disabled = value || inspecting; });
   $('#retry-turn').disabled = value;
+}
+function updateInspectionControls() {
+  document.querySelectorAll('#generated-choices button, #scene-objects button').forEach(button=>{button.disabled=busy || inspecting;});
+  $('#new-adventure').disabled=busy || inspecting;
+  $('#retry-turn').disabled=busy || inspecting;
+  $('#retry-inspection').disabled=inspecting;
 }
 function showError(message, inSetup = false) {
   const node = $(inSetup ? '#setup-error' : '#turn-error'); node.textContent = message; node.hidden = false;
@@ -91,7 +101,7 @@ async function post(path, payload, timeout = 125000) {
 }
 
 async function runRequest(request) {
-  if (busy) return;
+  if (busy || inspecting) return;
   const inSetup = request.type === 'start';
   pending = request; save();
   $('#setup-error').hidden = true; $('#turn-error').hidden = true; $('#retry-turn').hidden = true;
@@ -101,7 +111,7 @@ async function runRequest(request) {
     if (!isSavedJourney(next)) throw new Error('The new scene could not be read. Please retry.');
     journey = next; pending = null; save();
     renderStory(); showStory();
-    await loadVisual(true);
+    await loadVisual(journey.state.setup.illustrationMode === 'automatic');
     $('#generated-choices button')?.focus({ preventScroll:true });
   } catch (error) {
     showError(error.message, inSetup);
@@ -139,6 +149,8 @@ function renderStory() {
   $('#atmospheric-art').innerHTML = sceneArt(scene.visual, state.id + scene.chapterTitle);
   $('#generated-art').hidden = true; $('#generated-art').removeAttribute('src');
   $('#image-error').hidden = true; $('#image-progress').hidden = true;
+  $('#illustrate-scene').hidden = !state.setup.illustrations;
+  renderObjects();
   $('#generated-scene-caption').textContent = scene.isEnding ? 'An ending shaped by what you chose.' : 'Your next choice writes the next page.';
   $('#generated-choice-prompt').textContent = scene.isEnding ? 'EVERY ENDING HOLDS ANOTHER BEGINNING' : 'WHAT WILL YOU DO?';
   $('#decision-echo').hidden = !state.history.length;
@@ -156,12 +168,56 @@ function renderStory() {
   }
   $('#generated-save-status').textContent = storageAvailable ? '✧ Your journey is saved in this browser.' : 'Saving is unavailable. Keep this tab open to continue.';
   $('#cast-summary').textContent = state.characters.map(c=>c.name).join(' · ');
-  $('#journey-status').textContent = scene.isEnding ? 'The end. Yours, entirely.' : `${state.history.length} decisions remembered`;
+  $('#journey-status').textContent = `${state.history.length} decisions · ${(state.discoveries || []).length} discoveries`;
   $('#generated-progress').replaceChildren(...['Beginning','Complication','Discovery','Climax','Ending'].map((label,index)=>{
     const li = element('li',''); li.className = index+1 === state.sceneIndex ? 'active' : index+1 < state.sceneIndex ? 'complete' : '';
     if (index+1 === state.sceneIndex) li.setAttribute('aria-current','step');
     li.append(element('span',String(index+1).padStart(2,'0')),element('span',label,'generated-progress-label')); return li;
   }));
+}
+
+function renderObjects() {
+  const state=journey.state;
+  const objects=state.scene.objects || [];
+  const positions=objectPositions(objects.length);
+  $('#explore-hint').hidden=!objects.length;
+  $('#scene-objects').replaceChildren(...objects.map((item,index)=>{
+    const button=element('button','','hotspot generated-object');button.type='button';button.dataset.objectId=item.id;
+    button.style.left=positions[index][0]+'%';button.style.top=positions[index][1]+'%';
+    const found=(state.discoveries || []).some(d=>d.scene===state.sceneIndex && d.id===item.id);
+    button.dataset.inspected=String(found);button.setAttribute('aria-label',`Inspect ${item.label}${found ? ', already in your journal' : ''}`);
+    const sprite=element('span','','object-sprite');sprite.innerHTML=objectIcon(item.icon);
+    const caption=element('span','','hotspot-caption');caption.append(element('i',''),document.createTextNode(item.label),element('span',found?'✓':'+','object-seen'));
+    button.append(sprite,caption);button.addEventListener('click',()=>inspectObject(item.id));return button;
+  }));
+}
+
+async function inspectObject(objectId) {
+  if (busy || inspecting || !journey) return;
+  const state=journey.state;const item=(state.scene.objects || []).find(object=>object.id===objectId);
+  if (!item) return;
+  inspectedObjectId=objectId;
+  $('#object-title').textContent=item.label;$('#object-description').textContent=item.description;$('#object-clue').textContent=item.clue;
+  $('#object-scene-label').textContent=`A CLOSER LOOK · ${state.scene.location}`;
+  $('#object-dialog-icon').innerHTML=objectIcon(item.icon);
+  $('#retry-inspection').hidden=true;
+  if (!$('#object-dialog').open) $('#object-dialog').showModal();
+  if ((state.discoveries || []).some(d=>d.scene===state.sceneIndex && d.id===item.id)) {$('#object-memory-status').textContent='✓ This discovery is in your journal.';return;}
+  $('#object-memory-status').textContent='Remembering this discovery…';
+  inspecting=true;updateInspectionControls();
+  try {
+    const next=await post('/api/story/inspect',{token:journey.token,objectId},15000);
+    if (!isSavedJourney(next)) throw new Error('This discovery could not be saved.');
+    journey=next;
+    // A retried turn must carry any clues discovered after its earlier failure.
+    if (pending?.type==='choose') pending.payload.token=journey.token;
+    save();
+    const marker=[...document.querySelectorAll('[data-object-id]')].find(button=>button.dataset.objectId===objectId);
+    if (marker) {marker.dataset.inspected='true';marker.querySelector('.object-seen').textContent='✓';marker.setAttribute('aria-label',`Inspect ${item.label}, already in your journal`);}
+    $('#journey-status').textContent=`${journey.state.history.length} decisions · ${journey.state.discoveries.length} discoveries`;
+    $('#object-memory-status').textContent='✓ Discovery saved. The next scene will remember what you found.';
+  } catch(error) {$('#object-memory-status').textContent=error.message;$('#retry-inspection').hidden=false;}
+  finally {inspecting=false;updateInspectionControls();}
 }
 
 function openJournal() {
@@ -171,6 +227,7 @@ function openJournal() {
     const node = element('div','','relationship'); node.append(element('strong',person.name),element('span',person.relationship)); return node;
   }));
   $('#generated-decisions').replaceChildren(...(state.history.length ? state.history.map(item=>`${item.title}: ${item.decision}`) : ['Your first decision is still ahead.']).map(text=>element('li',text)));
+  $('#generated-discoveries').replaceChildren(...((state.discoveries || []).length ? state.discoveries.map(item=>`${item.label}: ${item.clue}`) : ['Look closer at the objects in your scene to discover more.']).map(text=>element('li',text)));
   $('#generated-facts').replaceChildren(...state.facts.map(text=>element('li',text)));
   $('#adventure-journal-dialog').showModal();
 }
@@ -202,6 +259,7 @@ function displayImage(data, state) {
   $('#generated-art').src = data;
   $('#generated-art').alt = `Illustration of ${state.scene.location}: ${state.scene.imagePrompt}`;
   $('#generated-art').hidden = false; $('#visual-type').textContent = 'AI SCENE ILLUSTRATION';
+  $('#illustrate-scene').hidden=true;
 }
 async function imageReference(dataUrl) {
   if (!validImage(dataUrl)) return null;
@@ -215,17 +273,17 @@ async function imageReference(dataUrl) {
 }
 async function loadVisual(generateIfMissing = false) {
   if (!journey?.state.setup.illustrations) return;
-  const current = journey; const state = current.state; const key = `${state.id}:${state.sceneIndex}`; const run = ++imageRun;
+  const current = journey; const state = current.state; const key = `${state.id}:${state.sceneIndex}`;
+  if (imageInFlight.has(key)) return;
+  const run = ++imageRun;
   const cached = await imageStore(key);
   if (run !== imageRun) return;
   if (validImage(cached)) { displayImage(cached,state); return; }
   if (!generateIfMissing) {
-    $('#image-error-text').textContent = 'This illustration has not been saved. You can retry it or continue with the atmospheric scene.';
-    $('#image-error').hidden = false; return;
+    $('#illustrate-scene').hidden=false;return;
   }
-  if (imageInFlight.has(key)) return;
-  imageInFlight.add(key); $('#image-progress').hidden = false; $('#image-error').hidden = true;
-  const reference = state.sceneIndex > 1 ? await imageReference(await imageStore(`${state.id}:1`)) : null;
+  imageInFlight.add(key); $('#image-progress').hidden = false; $('#image-error').hidden = true;$('#illustrate-scene').hidden=true;
+  const reference = config?.imageReferences && state.sceneIndex > 1 ? await imageReference(await imageStore(`${state.id}:1`)) : null;
   // Image generation runs separately; choices remain available while it paints.
   post('/api/story/image',{ token:current.token, ...(reference ? {reference} : {}) }).then(async result=>{
     if (!validImage(result.dataUrl)) throw new Error('The illustration could not be displayed.');
@@ -245,6 +303,7 @@ $('#setup-form').addEventListener('submit',async event=>{
   runRequest({ type:'start',payload:{ setup,requestId } });
 });
 $('#setup-form').addEventListener('input',()=>{ try { localStorage.setItem(DRAFT,JSON.stringify(readSetup())); } catch {} });
+$('#ai-illustrations').addEventListener('change',()=>{$('#image-frequency-field').hidden=!$('#ai-illustrations').checked;});
 const examples = {
   ocean: { premise:'I’m a detective in an underwater city where everyone has forgotten yesterday. A letter arrives in my own handwriting, warning me not to trust the sunrise.', protagonist:'A rookie detective who can hear echoes of lost memories', details:'My partner is a nervous octopus. The city runs on bottled sunlight. Make the mystery hopeful, with no combat.' },
   space: { premise:'I’m the last gardener on a spaceship carrying Earth’s final forest. One morning, the trees start growing star maps—and the ship changes course on its own.', protagonist:'A young botanist who has never seen a real sunrise', details:'My only companion is a maintenance robot that secretly writes poetry. Our choices should affect the forest and our friendship.' },
@@ -261,6 +320,8 @@ $('#resume-button').addEventListener('click',()=>{ if (journey) { renderStory();
 $('#adventure-journal').addEventListener('click',openJournal);
 $('#retry-turn').addEventListener('click',()=>{ if (pending) runRequest(pending); });
 $('#retry-image').addEventListener('click',()=>loadVisual(true));
+$('#illustrate-scene').addEventListener('click',()=>loadVisual(true));
+$('#retry-inspection').addEventListener('click',()=>inspectObject(inspectedObjectId));
 
 $('#setup-illustration').innerHTML = sceneArt({ setting:'mountain',sky:'#153943',accent:'#c8dcab',foreground:'#0d252c',timeOfDay:'night' },'the-first-world');
 if (journey) {

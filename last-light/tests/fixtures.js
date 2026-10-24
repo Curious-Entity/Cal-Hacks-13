@@ -10,6 +10,10 @@ export function sceneFixture(index = 1, chosen = null) {
     choices: index === 5 ? [] : [ { id:'trust_partner',label:'Trust your partner',hint:'Share the letter and accept their help.' }, { id:'follow_echo',label:'Follow the echo alone',hint:'Keep the secret, but face the unknown yourself.' } ],
     characters:[{ id:'oru',name:'Oru',description:'Your octopus partner',appearance:'A small copper-colored octopus with round spectacles',relationship:index>1?'Remembers what you chose':'Curious but cautious' }],
     memorySummary: `The detective found a letter. Scene ${index} has happened.${chosen ? ` The player chose ${chosen.label}.` : ''}`,
+    objects:[
+      {id:'sealed_letter',label:'Sealed letter',icon:'letter',description:'Your own handwriting crosses the envelope. The paper smells faintly of salt and warm copper.',clue:'The letter says the missing memories are stored beneath the observatory.'},
+      {id:'shortwave_radio',label:'Shortwave radio',icon:'radio',description:'A brass receiver clicks between stations. One voice keeps repeating the same unfamiliar name.',clue:'The radio broadcasts a safe route through the eastern tunnel.'},
+    ],
     newFacts:[`The city revealed clue ${index}.`], imagePrompt:'An underwater observatory with a copper octopus and blue glass towers.',
     visual:{ setting:'ocean',sky:'#164556',accent:'#c4dfb2',foreground:'#102c37',timeOfDay:'night' }, isEnding:index===5,
   };

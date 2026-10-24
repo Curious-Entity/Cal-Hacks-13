@@ -43,6 +43,7 @@
           <details class="story-details"><summary>Add characters, rules &amp; details <span>+</span></summary><label for="story-details" class="sr-only">Characters, rules, and story details</label><textarea id="story-details" name="details" rows="3" maxlength="2000" placeholder="My partner is a nervous octopus. The city runs on bottled sunlight. Keep the mystery hopeful, with no combat."></textarea></details>
           <div class="field-row"><div><label for="tone">Story mood</label><select id="tone" name="tone"><option value="cinematic">Cinematic &amp; adventurous</option><option value="mysterious">Mysterious &amp; atmospheric</option><option value="wonder">Strange &amp; full of wonder</option><option value="cozy">Cozy &amp; lighthearted</option></select></div><div><label for="art-style">Art direction</label><select id="art-style" name="artStyle"><option value="illustrated">Storybook illustration</option><option value="watercolor">Dreamy watercolor</option><option value="noir">Moody noir</option></select></div></div>
           <div class="image-option"><label><input type="checkbox" id="ai-illustrations" name="illustrations" disabled><span>Generate AI scene illustrations<small id="image-access-note">Checking illustration availability…</small></span></label></div>
+          <div id="image-frequency-field" class="image-frequency" hidden><label for="image-frequency">When should we paint?</label><select id="image-frequency"><option value="on-demand">Only when I ask</option><option value="automatic">Once for every scene</option></select></div>
           <p id="connection-status" class="connection-status" role="status">Connecting to the storyteller…</p>
           <div id="setup-error" class="error-banner" role="alert" hidden></div>
           <button id="begin-button" class="begin-button" type="submit"><span>Begin my adventure</span><span aria-hidden="true">↗</span></button>
@@ -60,6 +61,9 @@
             <div class="world-tint" aria-hidden="true"></div>
             <div class="scene-topline"><span><span class="live-dot"></span> <span id="visual-type">ATMOSPHERIC SCENE</span></span><span id="visual-mood"></span></div>
             <div class="image-progress" id="image-progress" hidden><span class="spinner" aria-hidden="true"></span><span>Painting this moment…</span></div>
+            <button id="illustrate-scene" class="illustrate-button" type="button" hidden>✧ Illustrate this scene</button>
+            <div id="scene-objects" class="scene-objects" aria-label="Objects you can inspect"></div>
+            <span id="explore-hint" class="explore-hint" hidden>✧ Click an object to look closer</span>
             <div class="world-bottom"><span class="location-icon" aria-hidden="true">⌖</span><div><strong id="generated-location"></strong><span id="generated-scene-caption">A world shaped by your imagination.</span></div><span class="scene-number" id="generated-scene-number"></span></div>
           </section>
           <section class="story-panel generated-panel" aria-label="Story and decisions" aria-busy="false">
@@ -82,7 +86,8 @@
     <footer class="site-footer"><span>◇ LAST LIGHT</span><span>Imagine a beginning. Discover your ending.</span></footer>
   </div>
 
-  <dialog id="adventure-journal-dialog" class="modal journal-modal"><form method="dialog"><button class="modal-close icon-button" aria-label="Close journal">×</button></form><p class="eyebrow">THE STORY SO FAR</p><h2>What the world remembers</h2><div id="generated-relationships" class="relationships"></div><h3 class="journal-subtitle">Your decisions</h3><ol id="generated-decisions" class="journal-entries"></ol><h3 class="journal-subtitle">Things you know</h3><ul id="generated-facts" class="journal-entries"></ul></dialog>
+  <dialog id="adventure-journal-dialog" class="modal journal-modal"><form method="dialog"><button class="modal-close icon-button" aria-label="Close journal">×</button></form><p class="eyebrow">THE STORY SO FAR</p><h2>What the world remembers</h2><div id="generated-relationships" class="relationships"></div><h3 class="journal-subtitle">Your decisions</h3><ol id="generated-decisions" class="journal-entries"></ol><h3 class="journal-subtitle">Objects examined</h3><ul id="generated-discoveries" class="journal-entries"></ul><h3 class="journal-subtitle">Things you know</h3><ul id="generated-facts" class="journal-entries"></ul></dialog>
+  <dialog id="object-dialog" class="modal object-modal"><form method="dialog"><button class="modal-close icon-button" aria-label="Close object inspection">×</button></form><span id="object-dialog-icon" class="object-dialog-icon" aria-hidden="true"></span><p class="eyebrow" id="object-scene-label">A CLOSER LOOK</p><h2 id="object-title"></h2><p id="object-description" class="modal-copy"></p><div class="object-clue"><span class="eyebrow">YOU NOTICE SOMETHING</span><p id="object-clue"></p></div><p id="object-memory-status" class="object-memory-status" role="status"></p><button id="retry-inspection" class="retry-button" hidden>Save this discovery again ↗</button></dialog>
   <dialog id="new-adventure-dialog" class="modal"><p class="eyebrow">ANOTHER WORLD IS WAITING</p><h2>Begin somewhere new?</h2><p class="modal-copy">Your current adventure stays saved until you successfully create a new one.</p><div class="modal-actions"><button id="cancel-new" class="quiet-button">Keep playing</button><button id="confirm-new" class="primary-button">Write a new beginning ↗</button></div></dialog>
 </body>
 </html>
