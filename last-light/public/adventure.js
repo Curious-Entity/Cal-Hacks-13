@@ -11,6 +11,7 @@ let inspecting = false;
 let inspectedObjectId = null;
 let imageRun = 0;
 let config = null;
+let storyConnection = 'unchecked';
 let storageAvailable = true;
 const imageInFlight = new Set();
 
@@ -57,19 +58,29 @@ try {
   if (saved?.pending && ['start','choose'].includes(saved.pending.type) && saved.pending.payload && typeof saved.pending.payload === 'object') pending = saved.pending;
 } catch { /* A malformed save should never prevent a new adventure. */ }
 
+function renderConnectionStatus() {
+  const node=$('#connection-status');
+  node.classList.toggle('ready',Boolean(config?.configured && storyConnection==='verified'));
+  node.classList.toggle('failed',Boolean(config?.configured && storyConnection==='failed'));
+  if (!config?.configured) node.textContent='Live generation is not connected yet. Add the project’s Gemini key, or explore the train demo.';
+  else if (storyConnection==='verified') node.textContent='✧ Your storyteller is connected.';
+  else if (storyConnection==='checking') node.textContent='Checking the story connection and writing your scene…';
+  else if (storyConnection==='failed') node.textContent='The last story request failed. Check the error message before retrying.';
+  else node.textContent='Your story connection will be checked when you begin.';
+}
 async function refreshConfig() {
   try {
     const response = await fetch('/api/config', { cache:'no-store' });
     if (!response.ok) throw new Error('No app server');
     config = await response.json();
-    $('#connection-status').textContent = config.configured ? '✧ The storyteller is ready for your idea.' : 'Live generation is not connected yet. Add the project’s Gemini key, or explore the train demo.';
-    $('#connection-status').classList.toggle('ready', config.configured);
+    renderConnectionStatus();
     $('#ai-illustrations').disabled = !config.illustrations;
     if (!config.illustrations) $('#ai-illustrations').checked = false;
     $('#image-frequency-field').hidden = !$('#ai-illustrations').checked;
     $('#image-access-note').textContent = config.illustrations ? `${config.imageProvider === 'openai' ? 'OpenAI · low quality.' : 'AI illustration.'} Paint only when you ask, or once per scene. Saved images are reused.` : 'Atmospheric scenes are included. Connect an image provider to paint additional illustrations.';
   } catch {
     config = null;
+    $('#connection-status').classList.remove('ready');$('#connection-status').classList.add('failed');
     $('#connection-status').textContent = 'The story server is unavailable. Start the app with python3 last-light/run.py, then use the URL it prints.';
     $('#image-access-note').textContent = 'Atmospheric vector scenes are included with every adventure.';
   }
@@ -103,7 +114,7 @@ async function post(path, payload, timeout = 125000) {
   let data;
   try { data = await response.json(); }
   catch { throw new Error('The story server could not be reached. Use the app server from python3 last-light/run.py.'); }
-  if (!response.ok) throw new Error(data.error || 'This scene could not be completed. Please retry.');
+  if (!response.ok) {const error=new Error(data.error || 'This scene could not be completed. Please retry.');error.code=data.code;throw error;}
   return data;
 }
 
@@ -112,15 +123,18 @@ async function runRequest(request) {
   const inSetup = request.type === 'start';
   pending = request; save();
   $('#setup-error').hidden = true; $('#turn-error').hidden = true; $('#retry-turn').hidden = true;
+  storyConnection='checking';renderConnectionStatus();
   setBusy(true);
   try {
     const next = await post(`/api/story/${request.type}`, request.payload);
     if (!isSavedJourney(next)) throw new Error('The new scene could not be read. Please retry.');
+    storyConnection='verified';renderConnectionStatus();
     journey = next; pending = null; save();
     renderStory(); showStory();
     await loadVisual(journey.state.setup.illustrationMode === 'automatic');
     $('#generated-choices button')?.focus({ preventScroll:true });
   } catch (error) {
+    storyConnection='failed';renderConnectionStatus();
     showError(error.message, inSetup);
     if (!inSetup) $('#retry-turn').hidden = false;
   } finally { setBusy(false); }

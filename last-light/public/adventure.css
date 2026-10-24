@@ -47,6 +47,7 @@ textarea,input,select { font:inherit; }
 .image-frequency label { font-size:10px; color:var(--muted); }
 .connection-status { color:var(--muted); font-size:10px; line-height:1.6; margin:10px 0 15px; }
 .connection-status.ready { color:var(--accent); }
+.connection-status.failed { color:#efc8b1; }
 .begin-button { width:100%; background:var(--accent); color:#14271e; display:flex; justify-content:space-between; align-items:center; border:0; border-radius:6px; font-size:12px; padding:17px 18px; }
 .begin-button:hover { background:#dbedce; }
 .begin-button > :last-child { font-size:21px; line-height:1; }

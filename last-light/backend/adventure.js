@@ -3,6 +3,7 @@
 import { StoryError } from './errors.js';
 import { imageConfiguration, illustrationPrompt, validateReference, checkedImage, generateOpenAIImage } from './images.js';
 import { storyMood, artDirection } from './preferences.js';
+import { geminiError } from './gemini-errors.js';
 export { StoryError } from './errors.js';
 export const TOTAL_SCENES = 5;
 export const TEXT_MODEL = 'gemini-3.5-flash-lite';
@@ -176,11 +177,7 @@ async function providerCall(env, model, body, fetcher, timeout) {
   } catch { throw new StoryError('The storyteller took too long to respond. Your progress is safe; please retry.', 504, 'PROVIDER_TIMEOUT'); }
   if (!response.ok) {
     console.error(`Gemini returned HTTP ${response.status} for ${model}.`);
-    // Never send raw upstream errors, headers, or a credential back to the browser.
-    if (response.status === 429) throw new StoryError('The Gemini project has reached a rate or usage limit. Wait before retrying, or check its quota in AI Studio.', 429, 'RATE_LIMITED');
-    if ([400,401,403].includes(response.status)) throw new StoryError('Gemini could not authorize this request. Check the project’s API key, model access, and billing tier.', 502, 'PROVIDER_ACCESS');
-    if (response.status === 404) throw new StoryError('The configured model is not available for this project. Check the model setting.', 502, 'MODEL_UNAVAILABLE');
-    throw new StoryError('The storyteller is temporarily unavailable. Your progress is safe; please retry.', 502, 'PROVIDER_ERROR');
+    throw await geminiError(response);
   }
   try { return await response.json(); }
   catch { throw new StoryError('The storyteller returned an unreadable response. Please retry.', 502, 'INVALID_MODEL_RESPONSE'); }
