@@ -18,7 +18,7 @@ The current app generates a five-scene adventure from your premise, character, t
 To use your own keys, clone this branch and create a local configuration:
 
 ```bash
-git clone --branch feature/illustrated-train-showcase https://github.com/Curious-Entity/Cal-Hacks-13.git
+git clone --branch feature/river-remembers-3d https://github.com/Curious-Entity/Cal-Hacks-13.git
 cd Cal-Hacks-13
 cp last-light/.env.example last-light/.env
 # Edit last-light/.env locally; add GEMINI_API_KEY, CLOUDFLARE_ACCOUNT_ID, and CLOUDFLARE_API_TOKEN.
@@ -91,9 +91,19 @@ Trees, poles, passing lights and rain move only inside traced window masks. Tea 
 
 Artwork was created with the built-in image_gen tool. Final assets and exact prompts are documented in [public/assets/train/README.md](public/assets/train/README.md) and [prompts.json](public/assets/train/prompts.json). Scene geometry is in `train-scene.js`; presentation is scoped to `train.css`.
 
+## Featured 3D forest: The River Remembers
+
+Open `/forest.html` or choose **The River Remembers** on the starting page. This standalone, bundled 3D story needs no API key. Walk into the campfire to catch fire, brush a tree to ignite it, and watch heat spread to nearby trees. Wade into the river to extinguish your clothes, heal, and refill a four-use water flask. Wet clothes resist ignition briefly. Press **E** near a burning tree or campfire to douse it; wet trees resist spreading embers for a while. Burned-out trees stay charred.
+
+The story and journal react to physical events. Cross to the stone cairn on the opposite bank and press **E** to finish: a quiet crossing, a forest you contained, or a forest left burning. Staying on fire too long ends the crossing in death. The containment ending requires putting out the campfire as well as containing the tree fires. Restart creates a fresh forest; progress otherwise saves locally under `last-light-river-embers-v1`.
+
+Controls: **WASD/arrows** move, **R** run, **Space** jump, drag to orbit, scroll to zoom, **Shift** lock/unlock camera, **E** throw water or leave at the cairn, **J** journal, **Esc** pause. Touch movement, jumping and water controls are available on phones. Dialogs and hidden tabs pause simulation. Ambient sound is opt-in and synthesized locally.
+
+`forest-rules.js` owns the deterministic simulation. `forest-engine.js` builds layered instanced foliage, textured bark, irregular riverbanks, moving water, camp objects, flame sprites, smoke, embers and an articulated traveler. Static geometry is batched and the camera avoids nearby trunks. The featured scenario has tested authored physical rules; custom generated worlds retain their existing Gemini pipeline. See [assets/forest/README.md](public/assets/forest/README.md).
+
 ## Playable 3D missions
 
-Choose **Explore a 3D world** and start a **new world**. The current version saves separately under `last-light-world-v3`; earlier saves remain in your browser. Clone `feature/illustrated-train-showcase` for this version, including the featured train artwork.
+Choose **Explore a 3D world** and start a **new world**. The current version saves separately under `last-light-world-v3`; earlier saves remain in your browser. Clone `feature/river-remembers-3d` for this version, including the featured train artwork.
 
 The scene is the interface: completing physical objectives advances the signed campaign automatically. There are no story-action menus or E-to-complete shortcuts. **WASD / arrows** move, **Space** jumps, **R** sprints, **Shift** toggles camera lock, **Escape** releases it, **F** reads a nearby place’s clues, and **J** opens the journal. Touch controls include movement, jumping, and field notes.
 
