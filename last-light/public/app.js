@@ -4,12 +4,16 @@ import { SAVE_KEY, CHARACTERS, newGame, getChoices, takeAction, serializeGame, r
 import { mountTrainMotion, getTrainScene} from './train-scene.js';
 
 const $ = selector => document.querySelector(selector);
+const examplePreview=new URL(location.href).searchParams.has('example');
+const journeyStorage={getItem:key=>(examplePreview?sessionStorage:localStorage).getItem(key),setItem:(key,value)=>(examplePreview?sessionStorage:localStorage).setItem(key,value)};
+const journeySaveKey=examplePreview?SAVE_KEY+'-example':SAVE_KEY;
+if(examplePreview)document.querySelector('.mode-tag').textContent='PREPARED EXAMPLE';
 let state = newGame();
 let storageAvailable = true;
 let reviewChapter = null;
 const displayedState = () => reviewChapter === null ? state : getChapterHistory(state).find(item => item.chapter === reviewChapter)?.state || state;
 try {
-  const saved = localStorage.getItem(SAVE_KEY);
+  const saved = journeyStorage.getItem(journeySaveKey);
   if (saved) state = restoreGame(saved);
 } catch { storageAvailable = false; }
 
@@ -55,7 +59,7 @@ $('#flip-photo').onclick = () => {
 };
 
 function save() {
-  try { localStorage.setItem(SAVE_KEY, serializeGame(state)); storageAvailable = true; }
+  try { journeyStorage.setItem(journeySaveKey, serializeGame(state)); storageAvailable = true; }
   catch { storageAvailable = false; }
 }
 

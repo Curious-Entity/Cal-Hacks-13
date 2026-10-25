@@ -1,11 +1,13 @@
 import {newForestGame,stepForest,splashWater,finishCrossing,forestBeat,endingCopy,FOREST_SAVE_KEY,CAMP,EXIT,riverCenter,riverWidth,inRiver,isInWater,waterBounds,waterProfile,waterDepth,damDistance,clearRiver,restoreForestGame} from './forest-rules.js';
 import {createForestRenderer} from './forest-engine.js';
 const $=s=>document.querySelector(s);
+const examplePreview=new URL(location.href).searchParams.has('example'),crossingStorage={getItem:key=>(examplePreview?sessionStorage:localStorage).getItem(key),setItem:(key,value)=>(examplePreview?sessionStorage:localStorage).setItem(key,value)},crossingSaveKey=examplePreview?FOREST_SAVE_KEY+'-example':FOREST_SAVE_KEY;
+if(examplePreview)document.querySelector('.forest-brand small').textContent='PREPARED EXAMPLE';
 let clearHeld=false;
 let state=newForestGame(),game,started=false,lastEvent=0,lastSave=0,toastUntil=0,saved=false,audio,soundOn=false,ambientGain,fireGain,waterGain;
-try{const raw=localStorage.getItem(FOREST_SAVE_KEY);if(raw){state=restoreForestGame(raw);saved=true;}}catch{}
+try{const raw=crossingStorage.getItem(crossingSaveKey);if(raw){state=restoreForestGame(raw);saved=true;}}catch{}
 lastEvent=state.events.length;
-function save(){try{localStorage.setItem(FOREST_SAVE_KEY,JSON.stringify(state));}catch{}}
+function save(){try{crossingStorage.setItem(crossingSaveKey,JSON.stringify(state));}catch{}}
 function paused(){return !started||document.hidden||!!document.querySelector('dialog[open]');}
 function notice(text,duration=5200){$('#event-toast').textContent=text;$('#event-toast').hidden=false;toastUntil=performance.now()+duration;}
 function douse(){if(paused()||state.ending||state.cooldown>0)return;const result=splashWater(state);notice(result.text);if(result.ok)game.splash(result.target);save();render();}

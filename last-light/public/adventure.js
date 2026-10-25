@@ -1,9 +1,12 @@
+import {PREPARED_EXAMPLES,matchesPreparedExample} from './prepared-examples.js';
 import { sceneArt } from './scene-art.js';
 import { objectIcon, objectPositions } from './scene-objects.js';
 
 const $ = selector => document.querySelector(selector);
 const SAVE = 'last-light-generated-v2';
 const DRAFT = 'last-light-setup-v2';
+let selectedExample = null;
+let exampleLoadController = null;
 let journey = null;
 let pending = null;
 let busy = false;
@@ -41,6 +44,38 @@ function fillSetup(setup) {
   if (['on-demand','automatic'].includes(setup.illustrationMode)) $('#image-frequency').value=setup.illustrationMode;
   updatePreferenceFields();
   if (setup.details) $('.story-details').open = true;
+  if(selectedExample&&!matchesPreparedExample(readSetup(),selectedExample))selectedExample=null;
+  if(setup.preparedExample&&PREPARED_EXAMPLES[setup.preparedExample]&&matchesPreparedExample(readSetup(),PREPARED_EXAMPLES[setup.preparedExample]))selectedExample=PREPARED_EXAMPLES[setup.preparedExample];
+  updateExampleControls();
+}
+function updateExampleControls(){
+  const selected=selectedExample;
+  $('#prepared-example-note').hidden=!selected;
+  $('#prepared-example-title').textContent=selected?'Prepared example · '+selected.title:'';
+  if(!busy)$('#begin-button span').textContent=selected?'Open example adventure':'Generate my adventure';
+  document.querySelectorAll('[data-prepared-example]').forEach(button=>{button.setAttribute('aria-pressed',String(button.dataset.preparedExample===selected?.id));button.disabled=busy;});
+}
+async function openPreparedExample(example){
+  setBusy(true);$('#setup-error').hidden=true;
+  const controller=new AbortController();exampleLoadController=controller;
+  $('#example-loading-art').src=example.image;$('#example-loading-title').textContent='Opening '+example.title;
+  $('#example-loading-progress').value=0;$('#example-loading-percent').textContent='0%';
+  $('#example-loading-status').textContent=example.id==='train'?'Loading the prepared illustrations and story.':'Loading the prepared world and its interactions.';
+  $('#example-loading').showModal();let completed=0;
+  try{
+    await Promise.all(example.assets.map(async path=>{
+      const response=await fetch(path,{signal:controller.signal,cache:'force-cache'});
+      if(!response.ok)throw new Error('Some of the example could not load. Please try again.');
+      const blob=await response.blob();
+      if(/\.(jpg|png|webp)$/.test(path)&&typeof createImageBitmap==='function'){const bitmap=await createImageBitmap(blob);bitmap.close();}
+      if(controller.signal.aborted)return;
+      completed++;$('#example-loading-progress').value=completed/example.assets.length;$('#example-loading-percent').textContent=Math.round(completed/example.assets.length*100)+'%';
+    }));
+    if(controller.signal.aborted)return;
+    sessionStorage.removeItem(example.saveKey);
+    location.assign(example.target);
+  }catch(error){if(!controller.signal.aborted)showError(error.message||'The example could not open. Please try again.',true);}
+  finally{controller.abort();exampleLoadController=null;$('#example-loading').close();setBusy(false);updateExampleControls();}
 }
 function isSavedJourney(value) {
   const state = value?.state;
@@ -96,7 +131,7 @@ async function refreshConfig() {
 function setBusy(value) {
   busy = value;
   $('#begin-button').disabled = value;
-  $('#begin-button span').textContent = value ? 'Writing your opening scene…' : 'Begin my adventure';
+  $('#begin-button span').textContent = value ? selectedExample?'Opening example adventure…':'Writing your opening scene…' : selectedExample?'Open example adventure':'Generate my adventure';
   $('#new-adventure').disabled = value || inspecting;
   $('#resume-button').disabled = value;
   $('#turn-loading').hidden = !value;
@@ -150,13 +185,13 @@ async function runRequest(request) {
 function showStory() {
   $('#setup-screen').hidden = true; $('#adventure-screen').hidden = false;
   $('#adventure-journal').hidden = false; $('#new-adventure').hidden = false;
-  $('.sample-link').hidden = true;
+  document.querySelectorAll('.sample-link').forEach(link=>link.hidden=true);
 }
 function showSetup() {
   imageRun++;
   $('#setup-screen').hidden = false; $('#adventure-screen').hidden = true;
   $('#adventure-journal').hidden = true; $('#new-adventure').hidden = true;
-  $('.sample-link').hidden = false;
+  document.querySelectorAll('.sample-link').forEach(link=>link.hidden=false);
   $('#resume-button').hidden = !journey;
   $('#setup-error').hidden = true;
   $('#premise').focus({ preventScroll:true });
@@ -325,6 +360,7 @@ async function loadVisual(generateIfMissing = false) {
 
 $('#setup-form').addEventListener('submit',async event=>{
   event.preventDefault(); if (busy) return;
+  if(selectedExample){if(matchesPreparedExample(readSetup(),selectedExample)){await openPreparedExample(selectedExample);return;}selectedExample=null;updateExampleControls();}
   await refreshConfig();
   if (!config?.configured) { showError(config ? 'The project’s Gemini connection is not configured yet. Add its API key to begin; the train demo is available now.' : 'Start the app server with python3 last-light/run.py, then open the URL it prints.',true); return; }
   const setup = readSetup();
@@ -335,7 +371,7 @@ $('#setup-form').addEventListener('submit',async event=>{
   const requestId = pending?.type === 'start' && JSON.stringify(pending.payload.setup) === JSON.stringify(setup) ? pending.payload.requestId : crypto.randomUUID();
   runRequest({ type:'start',payload:{ setup,requestId } });
 });
-$('#setup-form').addEventListener('input',event=>{ if (['ai-illustrations','image-frequency'].includes(event.target.id)) imagePreferencesSaved=true;try { localStorage.setItem(DRAFT,JSON.stringify(readSetup())); } catch {} });
+$('#setup-form').addEventListener('input',event=>{ selectedExample=null;updateExampleControls();if (['ai-illustrations','image-frequency'].includes(event.target.id)) imagePreferencesSaved=true;try { localStorage.setItem(DRAFT,JSON.stringify({...readSetup(),preparedExample:selectedExample?.id||null})); } catch {} });
 $('#ai-illustrations').addEventListener('change',()=>{$('#image-frequency-field').hidden=!$('#ai-illustrations').checked;});
 $('#tone').addEventListener('change',updatePreferenceFields);
 $('#art-style').addEventListener('change',updatePreferenceFields);
@@ -347,9 +383,18 @@ const examples = {
   forest: { premise:'I’ve inherited a tiny tea shop at the edge of an enchanted forest. My first customer is a dragon who has lost the ability to breathe fire, and the moon has gone missing.', protagonist:'An apprentice tea maker with a very opinionated cat', details:'A cozy adventure about helping strangers. Magic comes from small acts of kindness. No violence or horror.' },
 };
 document.querySelectorAll('[data-example]').forEach(button=>button.addEventListener('click',()=>{
-  fillSetup(examples[button.dataset.example]);
-  $('#premise').focus(); try { localStorage.setItem(DRAFT,JSON.stringify(readSetup())); } catch {}
+  selectedExample=null;fillSetup(examples[button.dataset.example]);updateExampleControls();
+  $('#premise').focus(); try { localStorage.setItem(DRAFT,JSON.stringify({...readSetup(),preparedExample:selectedExample?.id||null})); } catch {}
 }));
+document.querySelectorAll('[data-prepared-example]').forEach(button=>button.addEventListener('click',()=>{
+  if(busy)return;selectedExample=PREPARED_EXAMPLES[button.dataset.preparedExample];
+  fillSetup(selectedExample.setup);updateExperience();updateExampleControls();$('#image-frequency-field').hidden=selectedExample.setup.experience!=='illustrated';
+  try{localStorage.setItem(DRAFT,JSON.stringify({...readSetup(),preparedExample:selectedExample.id}));}catch{}
+  $('#setup-form').scrollIntoView({behavior:matchMedia('(prefers-reduced-motion: reduce)').matches?'instant':'smooth',block:'start'});$('#premise').focus({preventScroll:true});
+}));
+$('#use-live-generation').onclick=()=>{selectedExample=null;updateExampleControls();try{localStorage.setItem(DRAFT,JSON.stringify(readSetup()));}catch{}};
+$('#cancel-example-loading').onclick=()=>exampleLoadController?.abort();
+$('#example-loading').addEventListener('cancel',event=>{event.preventDefault();exampleLoadController?.abort();});
 $('#new-adventure').addEventListener('click',()=>$('#new-adventure-dialog').showModal());
 $('#cancel-new').addEventListener('click',()=>$('#new-adventure-dialog').close());
 $('#confirm-new').addEventListener('click',()=>{ $('#new-adventure-dialog').close(); showSetup(); });
@@ -365,7 +410,7 @@ if (journey) {
   renderStory(); showStory(); loadVisual();
   if (pending?.type === 'choose') { showError('Your last request did not finish. Retry it when you are ready.'); $('#retry-turn').hidden = false; }
 } else if (pending?.type === 'start') {
-  fillSetup(pending.payload.setup); showError('Your opening scene did not finish. Choose “Begin my adventure” to retry the same request.',true);
+  fillSetup(pending.payload.setup); showError('Your opening scene did not finish. Choose “Generate my adventure” to retry the same request.',true);
 }
 refreshConfig();
 updateExperience();

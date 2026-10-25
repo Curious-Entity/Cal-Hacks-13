@@ -79,6 +79,12 @@ Cloudflare's Workers Free plan provides a shared account allowance of 10,000 Neu
 
 Live Cloudflare generation was verified on October 24, 2026; the first test image took about 37 seconds. Latency varies with service capacity. The [official Klein integration example](https://developers.cloudflare.com/changelog/post/2026-01-15-flux-2-klein-4b-workers-ai/) documents multipart requests and reference inputs. Image descriptions and object clues remain playable while generation runs.
 
+## Prepared example presets
+
+The two example buttons on the starting page prefill the train and forest premises, protagonists, world details, custom moods and art directions. Selecting a preset visibly marks it as a **prepared example** and changes the action to **Open example adventure**. The loading dialog fetches and decodes the real bundled assets and reports completed-resource progress; it has no artificial timer or simulated generation stages. Editing any field, or choosing **Use these details for live generation instead**, returns the action to **Generate my adventure** and routes through the actual Gemini pipeline.
+
+Opening a preset starts a fresh preview at `/sample.html?example=1` or `/forest.html?example=1`. Preview progress uses separate session storage and does not overwrite normal train or forest saves. The default sample pages remain directly accessible, and existing generated journeys keep their usual storage.
+
 ## Featured illustrated train adventure
 
 Open `/sample.html` or choose **The Westbound Limited** on the starting page. The original trust-and-memory story now has a detailed carriage painting, expressive Mara and Eli, a visible wooden radio and red brake, and a matching golden platform ending. All artwork is bundled; this featured sample makes no model or image-generation requests during play.
