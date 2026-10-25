@@ -1,13 +1,17 @@
 
-# Last Light — AI Interactive Storytelling
+# Unwritten — The next chapter is yours.
 
-**Create a world. Make a choice. Change the story.**
+**Turn an idea into an adventure. Choose what happens next.**
 
-Last Light is an AI-powered interactive storytelling project built for Cal Hacks 13.0.
+Unwritten is an AI-powered interactive storytelling project built for Cal Hacks 13.0. Describe a world, become part of its story, and shape what happens through your choices and actions.
 
-Our goal is to let users create their own fictional worlds, become characters within those worlds, and experience stories that evolve dynamically based on their decisions.
+Experience an illustrated adventure with generated scenes and branching choices, or explore a playable 3D world. Gemini generates custom narratives and structured world blueprints; the app brings them to life through scene illustrations and an interactive game engine. Story memory carries your decisions forward so the next chapter reflects how you got there.
 
-Unlike traditional interactive fiction with predefined story branches, Last Light aims to combine generative AI, persistent story memory, and player-driven actions to create personalized narratives with meaningful consequences.
+The prepared train and forest examples showcase illustrated storytelling and a reactive 3D simulation, with clear labels distinguishing them from live generation.
+
+## Project description
+
+Unwritten turns your ideas into interactive stories and playable 3D worlds. Explore, make choices, and shape what happens next. The next chapter is yours.
 
 ## Demo
 
@@ -35,7 +39,7 @@ The original scripted train adventure is available at `/sample.html` and needs n
 
 ### Hosted Demo
 
-[Open Last Light](https://last-light-calhacks-thirteen.awaregoat514.chatgpt.site). The hosted demo is public and opens without a ChatGPT login. API keys remain on the server.
+[Open Unwritten](https://last-light-calhacks-thirteen.awaregoat514.chatgpt.site). The hosted demo is public and opens without a ChatGPT login. API keys remain on the server.
 
 ### Optional AI illustrations
 
@@ -139,7 +143,7 @@ The team's original `make-x20/fantasy-roam` prototype remains unchanged. Its pro
 
 ## Core Concept
 
-Last Light transforms a simple user prompt into an interactive fictional world.
+Unwritten transforms a simple user prompt into an interactive fictional world.
 
 The intended experience follows five steps:
 
@@ -155,7 +159,7 @@ A user enters:
 
 > A magical kingdom where every spell permanently erases one of the caster's memories.
 
-Last Light generates a fictional world with its own history, characters, and rules.
+Unwritten generates a fictional world with its own history, characters, and rules.
 
 The player encounters a forbidden magical archive and must decide what to do.
 
@@ -378,4 +382,4 @@ These features are outside the initial MVP scope.
 
 ---
 
-**Last Light — Every choice becomes part of your story.**
+**Unwritten — The next chapter is yours.**

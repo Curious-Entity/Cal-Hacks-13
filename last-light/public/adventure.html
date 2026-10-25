@@ -3,8 +3,8 @@
 <head>
   <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="theme-color" content="#0b171c">
-  <meta name="description" content="Describe a world. Make a choice. Discover what happens next. Create your own illustrated adventure with Last Light.">
-  <title>Last Light — your idea, your adventure</title>
+  <meta name="description" content="Unwritten turns your ideas into interactive stories and playable 3D worlds. Explore, make choices, and shape what happens next. The next chapter is yours.">
+  <title>Unwritten — The next chapter is yours.</title>
   <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='16' fill='%230b171c'/%3E%3Cpath d='M32 8 50 32 32 56 14 32Z' fill='none' stroke='%23bdddba' stroke-width='3'/%3E%3C/svg%3E">
   <link rel="stylesheet" href="styles.css"><link rel="stylesheet" href="adventure.css">
   <script type="module" src="adventure.js"></script>
@@ -12,7 +12,7 @@
 <body>
   <div class="app-shell">
     <header class="topbar">
-      <a class="brand" href="./"><span class="brand-symbol" aria-hidden="true">◇</span><span>LAST LIGHT<small>A STORY THAT REMEMBERS</small></span></a>
+      <a class="brand" href="./"><span class="brand-symbol" aria-hidden="true">◇</span><span>UNWRITTEN<small>THE NEXT CHAPTER IS YOURS</small></span></a>
       <div class="route-label"><span class="live-dot"></span> YOUR IDEA. YOUR ADVENTURE.</div>
       <nav class="controls" aria-label="Adventure controls">
         <button type="button" class="sample-link" data-prepared-example="forest">Try a 3D example ↗</button>
@@ -26,9 +26,9 @@
       <section id="setup-screen" class="setup-layout" aria-labelledby="setup-title">
         <div class="setup-intro">
           <p class="eyebrow">AN ADVENTURE THAT STARTS WITH YOU</p>
-          <h1 id="setup-title">Every world begins<br>with a <em>what if.</em></h1>
-          <p class="setup-lede">A city beneath the ocean. A dragon with a day job. A familiar place with one impossible secret.</p>
-          <p class="setup-description">Tell us the story you want to step into.<br>Where it goes next is up to you.</p>
+          <h1 id="setup-title">The next chapter<br>is <em>yours.</em></h1>
+          <p class="setup-lede">Start with an idea. Step into an illustrated story or a playable 3D world. Decide what happens next.</p>
+          <p class="setup-description">Your choices write the story.<br>Your actions change the world.</p>
           <button type="button" class="featured-train" data-prepared-example="train"><img src="/assets/train/carriage-arrival.jpg" alt="Mara and the conductor aboard the lamplit Westbound Limited." width="1536" height="1024"><span><small>PREPARED ILLUSTRATED EXAMPLE</small><strong>The Westbound Limited</strong><em>A photograph. Two strangers. A way home.</em><b>Use this story example ↗</b></span></button>
           <button type="button" class="featured-train featured-forest" data-prepared-example="forest"><img src="/assets/forest/river-clearing.jpg" alt="A campfire beside a leafy forest and a winding river." width="1500" height="1000"><span><small>PREPARED 3D EXAMPLE</small><strong>The River Remembers</strong><em>A village. A wildfire. A river you can change.</em><b>Use this world example ↗</b></span></button>
           <div id="setup-illustration" class="setup-illustration" aria-hidden="true"></div>
@@ -89,7 +89,7 @@
         <div class="inventory-strip"><span class="eyebrow">YOUR TRAVELING COMPANIONS</span><span id="cast-summary"></span><span class="prototype-note" id="journey-status"></span></div>
       </section>
     </main>
-    <footer class="site-footer"><span>◇ LAST LIGHT</span><span>Imagine a beginning. Discover your ending.</span></footer>
+    <footer class="site-footer"><span>◇ UNWRITTEN</span><span>The next chapter is yours.</span></footer>
   </div>
 
   <dialog id="example-loading" class="modal example-loading" aria-labelledby="example-loading-title"><p class="eyebrow">OPENING A PREPARED EXAMPLE</p><img id="example-loading-art" width="1536" height="1024" alt=""><div class="example-loading-copy"><span class="loading-diamond" aria-hidden="true">◇</span><h2 id="example-loading-title">Opening your adventure…</h2><p id="example-loading-status" role="status">Loading the artwork and interactive scenes.</p><progress id="example-loading-progress" value="0" max="1" aria-label="Adventure asset loading progress"></progress><span id="example-loading-percent">0%</span><button type="button" id="cancel-example-loading" class="quiet-button">Cancel</button></div></dialog>

@@ -52,4 +52,4 @@ const server = createServer(async (req, res) => {
 });
 server.requestTimeout = 150000;
 server.on('error', error => { console.error(error.code === 'EADDRINUSE' ? `Port ${port} is already in use. Stop the old server or choose a different PORT.` : 'The local server could not start.'); process.exitCode = 1; });
-server.listen(port, '127.0.0.1', () => console.log(`Last Light is running at http://localhost:${port}\nKeep this terminal open. Press Ctrl+C to stop.\nEdit last-light/.env to connect Gemini; changes are picked up automatically.`));
+server.listen(port, '127.0.0.1', () => console.log(`Unwritten is running at http://localhost:${port}\nKeep this terminal open. Press Ctrl+C to stop.\nEdit last-light/.env to connect Gemini; changes are picked up automatically.`));

@@ -1,10 +1,10 @@
-# Last Light — AI Interactive Storytelling
+# Unwritten — The next chapter is yours.
 
-**Create a world. Make a choice. Change the story.**
+**Turn an idea into an adventure. Choose what happens next.**
 
 An AI-powered interactive storytelling game built for **Cal Hacks 13.0**.
 
-Last Light lets players create their own fictional worlds, shape narratives through meaningful choices, and experience personalized adventures that evolve with their decisions.
+Unwritten turns your ideas into interactive stories and playable 3D worlds. Explore, make choices, and shape what happens next. The next chapter is yours.
 
 ## Features
 
@@ -18,12 +18,16 @@ Last Light lets players create their own fictional worlds, shape narratives thro
 - **Scene Exploration:** Click objects to reveal clues that influence the next scene.
 - **Interactive Visuals:** Atmospheric artwork, Cloudflare scene illustrations with optional OpenAI/Gemini providers, and the original train demo.
 
+## Try Unwritten
+
+[Open Unwritten](https://last-light-calhacks-thirteen.awaregoat514.chatgpt.site/adventure.html?create=1). Generate an adventure from your own idea, or explore the clearly labeled prepared train and forest examples.
+
 ## Getting Started
 
 Clone the feature branch, create your local configuration, and start the app:
 
 ```bash
-git clone --branch feature/generated-3d-world https://github.com/Curious-Entity/Cal-Hacks-13.git
+git clone --branch feature/river-remembers-3d https://github.com/Curious-Entity/Cal-Hacks-13.git
 cd Cal-Hacks-13
 cp last-light/.env.example last-light/.env
 # Open last-light/.env in your editor and add your own API keys.
@@ -44,4 +48,4 @@ The full documentation covers setup, gameplay, story generation, memory, testing
 
 October 23–25, 2026 · San Francisco, California
 
-*Every choice becomes part of your story.*
+*The next chapter is yours.*
