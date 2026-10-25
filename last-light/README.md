@@ -18,7 +18,7 @@ The current app generates a five-scene adventure from your premise, character, t
 To use your own keys, clone this branch and create a local configuration:
 
 ```bash
-git clone --branch feature/playable-world-missions https://github.com/Curious-Entity/Cal-Hacks-13.git
+git clone --branch feature/illustrated-train-showcase https://github.com/Curious-Entity/Cal-Hacks-13.git
 cd Cal-Hacks-13
 cp last-light/.env.example last-light/.env
 # Edit last-light/.env locally; add GEMINI_API_KEY, CLOUDFLARE_ACCOUNT_ID, and CLOUDFLARE_API_TOKEN.
@@ -79,9 +79,19 @@ Cloudflare's Workers Free plan provides a shared account allowance of 10,000 Neu
 
 Live Cloudflare generation was verified on October 24, 2026; the first test image took about 37 seconds. Latency varies with service capacity. The [official Klein integration example](https://developers.cloudflare.com/changelog/post/2026-01-15-flux-2-klein-4b-workers-ai/) documents multipart requests and reference inputs. Image descriptions and object clues remain playable while generation runs.
 
+## Featured illustrated train adventure
+
+Open `/sample.html` or choose **The Westbound Limited** on the starting page. The original trust-and-memory story now has a detailed carriage painting, expressive Mara and Eli, a visible wooden radio and red brake, and a matching golden platform ending. All artwork is bundled; this featured sample makes no model or image-generation requests during play.
+
+The five hotspots are measured against the actual 1536 × 1024 painting. Its aspect ratio stays fixed on every screen, so labels and hit regions remain over their objects. Picking up the photograph opens the actual three-person keepsake; flip it to read its message, then reopen it from your pocket. The tabletop clears after collection and the photograph returns for the loop ending. Mara and Eli can receive the photo through their scene dialogs. The brake becomes actionable when the final platform approaches.
+
+Trees, poles, passing lights and rain move only inside traced window masks. Tea steam and warm lamplight add subtle motion. The motion toggle and reduced-motion preferences pause those effects. Optional local audio includes rail rhythm, low rumble and a radio cue. The custom story and 3D generation pipelines remain separate.
+
+Artwork was created with the built-in image_gen tool. Final assets and exact prompts are documented in [public/assets/train/README.md](public/assets/train/README.md) and [prompts.json](public/assets/train/prompts.json). Scene geometry is in `train-scene.js`; presentation is scoped to `train.css`.
+
 ## Playable 3D missions
 
-Choose **Explore a 3D world** and start a **new world**. The current version saves separately under `last-light-world-v3`; earlier saves remain in your browser. Clone `feature/playable-world-missions` for this version.
+Choose **Explore a 3D world** and start a **new world**. The current version saves separately under `last-light-world-v3`; earlier saves remain in your browser. Clone `feature/illustrated-train-showcase` for this version, including the featured train artwork.
 
 The scene is the interface: completing physical objectives advances the signed campaign automatically. There are no story-action menus or E-to-complete shortcuts. **WASD / arrows** move, **Space** jumps, **R** sprints, **Shift** toggles camera lock, **Escape** releases it, **F** reads a nearby place’s clues, and **J** opens the journal. Touch controls include movement, jumping, and field notes.
 

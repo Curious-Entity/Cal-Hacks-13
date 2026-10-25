@@ -75,7 +75,7 @@ export function takeAction(previous, actionId) {
       if (state.ally) {
         state.trust[state.ally] = 0;
         remember(`You refused ${CHARACTERS[state.ally].name}'s plan. They pulled away, unsure they could trust you.`);
-      } else { remember('You told Eli you found nothing. He returned to the next carriage.'); }
+      } else { remember('You told Eli you found nothing. He turned toward the door, keeping his distance.'); }
       break;
     case 'stop_train':
       state.stage = 'ending'; state.ending = state.ally && state.promised ? 'together' : 'alone';
@@ -121,7 +121,7 @@ export function getView(state) {
         'She turns the photograph over. “You trusted me with this. So here is the truth: the train never arrives. It only takes another memory.”',
         '“There is one stop left. Promise me you will pull the brake when you see the platform.”',
       ] : state.ally === 'eli' ? [
-        'Eli takes off his conductor’s cap. “I was a passenger once. Every time I stayed aboard, I forgot why I wanted to leave.”',
+        'Eli closes his fingers around the stopped watch. “I was a passenger once. Every time I stayed aboard, I forgot why I wanted to leave.”',
         '“You showed me the photograph. You could have hidden it. That tells me you are still looking for a way home.”',
         '“One station remains. Promise you will stop the train. This time, I would like to leave with someone.”',
       ] : [
@@ -131,7 +131,7 @@ export function getView(state) {
       ] };
     case 'decision': return { ...base, chapter: 2, label: 'CHAPTER 03 · BEFORE DAYLIGHT', title: 'The next stop\nis a choice.', speaker: state.promised ? state.ally : 'narrator', status: 'THE LAST PLATFORM IS APPROACHING', hint: 'The emergency brake is within reach.', paragraphs: [
       state.radioHeard ? 'The radio repeats the warning you heard earlier: “Last stop before daylight.” This time, you understand.' : 'The radio crackles: “Last stop before daylight. Passengers wishing to remember must leave now.”',
-      state.promised ? `“You said we would do this,” ${ally} says. Their hand hovers beside yours. “I remember.”` : state.ally ? `${ally} stands at the other end of the carriage. After you refused their plan, they stopped looking your way.` : 'Mara looks out of the window. Eli has gone. You kept your secret, and now the choice is yours alone.',
+      state.promised ? `“You said we would do this,” ${ally} says. Their voice barely rises above the wheels. “I remember.”` : state.ally ? `${ally} falls silent. After you refused their plan, the distance between you feels wider than the aisle.` : 'Mara looks out of the window. Eli waits silently by the door. You kept your secret, and now the choice is yours alone.',
       'Beyond the glass, a platform emerges from the mist. The brake hangs beside the door. The train begins to pick up speed.',
     ] };
     case 'ending': {
@@ -158,7 +158,8 @@ export function getView(state) {
 }
 
 export function inspectObject(state, target) {
-  if (target === 'photograph') return { title: 'A photograph, face down.', label: 'FOUND ON THE TABLE',
+  if (target === 'brake') return { title: state.stage === 'decision' ? 'One pull. A different future.' : 'The red emergency brake.', label: 'BESIDE THE CARRIAGE DOOR', paragraphs: state.stage === 'decision' ? ['The last platform is appearing beyond the glass. Pulling this handle will stop the train. Whether someone steps off beside you depends on what you promised.'] : ['The red handle is cold and solid. A brass plate asks passengers to wait until a platform is in sight. For now, the mountains pass without a station.'], action: state.stage === 'decision' ? 'stop_train' : null, actionLabel: 'Pull the brake and leave the train ↗' };
+  if (target === 'photograph') return { title: state.stage === 'arrival' ? 'A photograph, face down.' : 'Three faces. One impossible memory.', label: 'FOUND ON THE TABLE',
     paragraphs: state.stage === 'arrival' ? ['A faded photograph rests beside an empty cup. Someone has written a message on the back.'] : state.ending === 'loop' ? ['It is back on the table. Three figures on a platform. A message you almost recognize.'] : ['You, Mara, and Eli, on a platform in daylight. On the back: “If we forget again, find each other.”'],
     action: state.stage === 'arrival' ? 'inspect_photo' : null, actionLabel: 'Turn it over ↗' };
   if (target === 'radio') return { title: 'A voice through the static.', label: 'THE CARRIAGE RADIO', paragraphs: [state.ending === 'loop' ? '“The time is 03:17. Welcome aboard the Westbound Limited.”' : '“Last stop before daylight. Pull the brake if you wish to remember.”', 'The same words repeat. There is no music. There never was.'], action: null };
@@ -166,5 +167,5 @@ export function inspectObject(state, target) {
   if (!person || target === 'narrator') throw new Error('Unknown character');
   let text = target === 'mara' ? 'Mara traces a circle on the fogged glass. “Do you ever miss somewhere you cannot name?”' : 'Eli checks his watch. Both hands point to 03:17. “Your ticket says one way. They all do.”';
   if (state.ally === target) text = state.stage === 'ending' ? state.ending === 'together' ? '“We remembered each other. That is a beginning.”' : 'They look at you as if there is something they want to say, but have forgotten the words.' : state.promised === true ? '“You promised. I am ready when you are.”' : state.promised === false ? '“I understand. Some things are difficult to promise a stranger.”' : '“You showed me the photograph first. I will remember that.”';
-  return { title: person.name, label: person.role.toUpperCase(), paragraphs: [text], action: null };
+  return { title: person.name, label: person.role.toUpperCase(), paragraphs: [text], action: state.stage === 'discovery' ? (target === 'mara' ? 'show_mara' : 'show_eli') : null, actionLabel: state.stage === 'discovery' ? `Show ${person.name} the photograph ↗` : null };
 }

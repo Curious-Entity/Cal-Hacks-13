@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { newGame, getChoices, takeAction, serializeGame, restoreGame, getView } from '../public/story.js';
+import { newGame, getChoices, takeAction, serializeGame, restoreGame, getView, inspectObject } from '../public/story.js';
 
 test('all paths reach an ending with consistent replayable memory', () => {
   let endings = new Set(); let paths = 0;
@@ -39,4 +39,19 @@ test('illegal moves and invalid saved games are rejected', () => {
   assert.throws(() => takeAction(newGame(), 'stop_train'));
   assert.throws(() => restoreGame('{"version":1,"actions":["stay_aboard"]}'));
   assert.throws(() => restoreGame('{"version":2,"actions":[]}'));
+});
+
+// Contextual scene controls must obey the same story rules as the choice panel.
+test('painted character and brake inspections expose actions only at the correct stage', () => {
+  const arrival = newGame();
+  assert.equal(inspectObject(arrival, 'brake').action, null);
+  assert.equal(inspectObject(arrival, 'mara').action, null);
+  const discovery = takeAction(arrival, 'inspect_photo');
+  assert.equal(inspectObject(discovery, 'mara').action, 'show_mara');
+  assert.equal(inspectObject(discovery, 'eli').action, 'show_eli');
+  const decision = ['show_mara', 'accept_plan'].reduce(takeAction, discovery);
+  assert.equal(inspectObject(decision, 'mara').action, null);
+  const brake = inspectObject(decision, 'brake');
+  assert.equal(brake.action, 'stop_train');
+  assert.equal(takeAction(decision, brake.action).ending, 'together');
 });
