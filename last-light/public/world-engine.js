@@ -53,7 +53,7 @@ export function createWorldRenderer(host,world,options={}) {
     instances(new THREE.BoxGeometry(2.3,.2,.05),accentMat,(m,p)=>{m.position.y+=p.h*.65;m.position.z+=1.53;});
     decor.forEach(p=>colliders.push({x:p.x,z:p.z,r:2.1}));
   }else if(biome==='ocean'){
-    instances(new THREE.ConeGeometry(1,4,5),leafMat,(m,p)=>{m.position.y+=1.5*p.s;m.scale.set(p.s*.7,p.s,p.s*.7);m.rotation.z=.25;});
+    instances(new THREE.CylinderGeometry(.18,.36,4,16),leafMat,(m,p)=>{m.position.y+=1.5*p.s;m.scale.set(p.s*.7,p.s,p.s*.7);m.rotation.z=.25;});for(let branch=0;branch<3;branch++){instances(new THREE.CylinderGeometry(.1,.2,2,12),leafMat,(m,p)=>{m.position.y+=(2+branch*.5)*p.s;m.position.x+=Math.sin(branch*2.4)*p.s;m.position.z+=Math.cos(branch*2.4)*p.s;m.rotation.z=Math.sin(branch*2.4)*.8;m.rotation.x=Math.cos(branch*2.4)*.8;m.scale.setScalar(p.s);});instances(new THREE.SphereGeometry(.5,16,12),leafMat,(m,p)=>{m.position.y+=(3+branch*.4)*p.s;m.position.x+=Math.sin(branch*2.4)*1.4*p.s;m.position.z+=Math.cos(branch*2.4)*1.4*p.s;m.scale.set(p.s,.7*p.s,p.s);});}
     instances(new THREE.OctahedronGeometry(1,0),accentMat,(m,p)=>{m.position.y+=.5;m.scale.set(p.s,.6*p.s,p.s);});
   }else{
     instances(new THREE.DodecahedronGeometry(1,1),stoneMat,(m,p)=>{m.position.y+=.4*p.s;m.scale.set(p.s,p.s*.7,p.s);});
