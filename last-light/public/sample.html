@@ -27,6 +27,8 @@
 
     <main>
       <div class="chapter-heading"><div><p class="eyebrow" id="chapter-label">CHAPTER 01 · THE PHOTOGRAPH</p><h1 id="chapter-title">Everyone has a past.<br>Yours is on this train.</h1></div><p class="intro-caption">A little mystery.<br>A choice that stays with you.</p></div>
+      <nav class="journey-navigation" aria-label="Chapter history"><p>YOUR JOURNEY <small>Revisit any chapter you have reached</small></p><ol id="chapter-progress" class="chapter-progress" aria-label="Story chapters"></ol></nav>
+      <div id="history-banner" class="history-banner" hidden><span id="history-label" role="status"></span><div><button id="history-previous" class="quiet-button">← Previous</button><button id="history-next" class="quiet-button">Next →</button><button id="history-return" class="primary-button">Return to current chapter ↗</button></div></div>
       <div class="game-layout">
         <section class="world train-world" aria-label="Interactive illustrated train carriage">
           <div class="scene-topline"><span><span class="live-dot"></span> THE WESTBOUND LIMITED</span><span id="world-status">SOMEWHERE BEFORE DAYLIGHT</span></div>
@@ -36,7 +38,7 @@
             <div class="train-atmosphere" aria-hidden="true"></div>
             <div id="train-hotspots"></div>
           </div>
-          <div class="world-bottom"><span class="location-icon" aria-hidden="true">⌖</span><div><strong id="location-name">The observation car</strong><span id="scene-hint">Look closer. Some things are waiting to be found.</span></div><span class="scene-number" id="scene-number">01 / 03</span></div>
+          <div class="world-bottom"><span class="location-icon" aria-hidden="true">⌖</span><div><strong id="location-name">The observation car</strong><span id="scene-hint">Look closer. Some things are waiting to be found.</span></div><span class="scene-number" id="scene-number">01 / 05</span></div>
           <div class="train-scene-toolbar"><span id="scene-invitation">Start with the photograph on the table.</span><button id="clue-toggle" aria-pressed="true">Hide labels</button></div>
         </section>
 
@@ -51,7 +53,6 @@
         </section>
       </div>
 
-      <footer class="game-footer"><ol class="chapter-progress" aria-label="Story progress"><li data-chapter="0"><span>01</span> The photograph</li><li data-chapter="1"><span>02</span> A borrowed truth</li><li data-chapter="2"><span>03</span> Before daylight</li></ol><p>Two strangers. One train. <em>Your consequences.</em></p></footer>
       <div class="inventory-strip"><button id="pocket-photo" class="pocket-photo" hidden><img src="/assets/train/station-photograph.jpg" alt="" width="58" height="40"><span>View your photograph ↗</span></button><span class="eyebrow">IN YOUR POCKET</span><span id="inventory-content">A one-way ticket. A feeling you have been here before.</span><span class="prototype-note">A short story about trust &amp; remembering</span></div>
     </main>
   </div>

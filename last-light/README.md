@@ -83,7 +83,9 @@ Live Cloudflare generation was verified on October 24, 2026; the first test imag
 
 Open `/sample.html` or choose **The Westbound Limited** on the starting page. The original trust-and-memory story now has a detailed carriage painting, expressive Mara and Eli, a visible wooden radio and red brake, and a matching golden platform ending. All artwork is bundled; this featured sample makes no model or image-generation requests during play.
 
-The five hotspots are measured against the actual 1536 × 1024 painting. Its aspect ratio stays fixed on every screen, so labels and hit regions remain over their objects. Picking up the photograph opens the actual three-person keepsake; flip it to read its message, then reopen it from your pocket. The tabletop clears after collection and the photograph returns for the loop ending. Mara and Eli can receive the photo through their scene dialogs. The brake becomes actionable when the final platform approaches.
+Five chapters now lead from the photograph and a borrowed truth through a dispatch-radio mystery and a vestibule conversation to the final stop. The two new decisions change recovered memories, allow a late repair of trust, and can bring all three travelers home. **Chapter history** above the scene unlocks as you progress: revisit earlier artwork, dialogue, and chosen decisions without changing the current save, then return to your current chapter. Completed older saves retain their original endings; start again to experience every new chapter.
+
+Each scene’s hotspots are measured against the actual 1536 × 1024 painting. Its aspect ratio stays fixed on every screen, so labels and hit regions remain over their objects. Picking up the photograph opens the actual three-person keepsake; flip it to read its message, then reopen it from your pocket. The tabletop clears after collection and the photograph returns for the loop ending. Mara and Eli can receive the photo through their scene dialogs. The brake becomes actionable when the final platform approaches.
 
 Trees, poles, passing lights and rain move only inside traced window masks. Tea steam and warm lamplight add subtle motion. The motion toggle and reduced-motion preferences pause those effects. Optional local audio includes rail rhythm, low rumble and a radio cue. The custom story and 3D generation pipelines remain separate.
 
@@ -235,7 +237,7 @@ The generated adventure includes:
 - Signed story state, browser save/resume, and retryable API errors
 - Responsive layouts and keyboard-accessible controls
 
-The original train demo retains three authored chapters, twelve main decision paths, three endings, character relationships, and optional ambient audio.
+The featured train demo has five authored chapters, 48 main decision paths, three endings with choice-dependent variations, character relationships, read-only chapter history, and optional ambient audio.
 
 ## Planned MVP Extensions
 

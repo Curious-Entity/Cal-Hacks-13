@@ -46,6 +46,25 @@ export function mountTrainMotion(host) {
     const line = document.createElementNS(ns, 'path'), x = (i*83)%1536, y = (i*67)%540;
     line.setAttribute('d', `M${x} ${y}l-5 ${8+i%5*4}`);rain.append(line);
   }
+  svg.querySelector('#train-window-glass path').dataset.carriagePath = svg.querySelector('#train-window-glass path').getAttribute('d');
   host.append(svg);
   return svg;
+}
+
+// Each new chapter has its own measured art and only the props visible in it.
+const SIGNAL_HOTSPOTS = {
+  radio: {x:20,y:40,w:27,h:40,label:'Radio',detail:'Tune the three-note signal'},
+  chart: {x:42,y:75,w:53,h:20,label:'Route chart',detail:'Follow the dim platform on Eli’s chart'},
+  eli: {x:61,y:4,w:26,h:67,label:'Eli',detail:'The conductor beside his dispatch desk'},
+};
+const VESTIBULE_HOTSPOTS = {
+  mara: {x:15,y:9,w:30,h:83,label:'Mara',detail:'Share what you are carrying'},
+  ticket: {x:49,y:79,w:12,h:6,label:'Ticket',detail:'Your one-way ticket on the shelf'},
+  brake: {x:90,y:12,w:7,h:25,label:'Brake',detail:'Wait until the last platform is beside the train'},
+};
+export function getTrainScene(state) {
+  if (state.stage === 'signal') return {id:'signal',art:'/assets/train/radio-compartment.jpg',hotspots:SIGNAL_HOTSPOTS,windowPath:'M0 0H409V457L200 502V329L141 299V220H82V291L0 298Z M444 0L635 147Q660 177 660 213V434L444 493Z',alt:'Eli stands beside a warmly lit dispatch desk with a wooden radio and railway route chart. Moonlit mountains pass beyond the compartment window.'};
+  if (state.stage === 'vestibule') return {id:'vestibule',art:'/assets/train/vestibule-before-dawn.jpg',hotspots:VESTIBULE_HOTSPOTS,windowPath:'M915 0H1310V584Q1310 653 1252 642L877 583V67Q877 0 915 0Z',alt:'Mara waits beside the rain-streaked carriage door. A ticket rests on the luggage shelf; the red brake hangs beside the window as the station approaches.'};
+  if (state.ending && state.ending !== 'loop') return {id:'platform',art:TRAIN_ART.platform,hotspots:{},alt:'The Westbound Limited rests beside a rain-wet mountain platform in golden dawn light, with an open carriage door and empty bench.'};
+  return {id:'carriage',art:TRAIN_ART.carriage,hotspots:TRAIN_HOTSPOTS};
 }
