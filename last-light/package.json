@@ -1,5 +1,6 @@
 {
-  "name": "last-light",
+  "name": "unwritten",
+  "description": "Unwritten turns your ideas into interactive stories and playable 3D worlds. Explore, make choices, and shape what happens next.",
   "version": "0.1.0",
   "private": true,
   "engines": {

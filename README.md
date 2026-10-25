@@ -22,6 +22,10 @@ Unwritten turns your ideas into interactive stories and playable 3D worlds. Expl
 
 [Open Unwritten](https://last-light-calhacks-thirteen.awaregoat514.chatgpt.site/adventure.html?create=1). Generate an adventure from your own idea, or explore the clearly labeled prepared train and forest examples.
 
+## Repository layout
+
+The app is named **Unwritten**. The `last-light/` source directory, existing browser-save identifiers, and hosted URL are retained for compatibility with existing checkouts and saved adventures.
+
 ## Getting Started
 
 Clone the feature branch, create your local configuration, and start the app:
