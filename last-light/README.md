@@ -18,7 +18,7 @@ The current app generates a five-scene adventure from your premise, character, t
 To use your own keys, clone this branch and create a local configuration:
 
 ```bash
-git clone --branch feature/generated-3d-world https://github.com/Curious-Entity/Cal-Hacks-13.git
+git clone --branch feature/branching-world-upgrade https://github.com/Curious-Entity/Cal-Hacks-13.git
 cd Cal-Hacks-13
 cp last-light/.env.example last-light/.env
 # Edit last-light/.env locally; add GEMINI_API_KEY, CLOUDFLARE_ACCOUNT_ID, and CLOUDFLARE_API_TOKEN.
@@ -79,27 +79,29 @@ Cloudflare's Workers Free plan provides a shared account allowance of 10,000 Neu
 
 Live Cloudflare generation was verified on October 24, 2026; the first test image took about 37 seconds. Latency varies with service capacity. The [official Klein integration example](https://developers.cloudflare.com/changelog/post/2026-01-15-flux-2-klein-4b-workers-ai/) documents multipart requests and reference inputs. Image descriptions and object clues remain playable while generation runs.
 
-## Explorable 3D world MVP
+## Explorable 3D campaign
 
-Choose **Explore a 3D world** on the starting form, describe your setting and protagonist, and keep the existing mood/art-direction controls. Gemini creates a validated world blueprint and its opening quest stage. The browser assembles a compact low-poly level from supported assets; it does not generate arbitrary 3D model files.
+Choose **Explore a 3D world**, enter your premise, and set your character, mood, and art direction. Start a **new world** for the expanded campaign. Original world saves remain under their old browser storage key; the new campaign saves separately.
 
-- **WASD / arrow keys:** walk; **Shift:** run.
-- **Drag:** turn the camera; **scroll:** zoom.
-- **F near a landmark:** inspect it and save its clue.
-- **E with the landmark panel open:** perform its available story action.
-- **J:** open the journal. Touch devices have on-screen movement and interaction controls.
+- **WASD / arrows:** walk. **Hold R:** sprint with regenerating stamina.
+- **Shift:** toggle mouse camera lock and shoulder view. **Escape:** release the cursor.
+- **Space:** jump; land before jumping again. Drag to look in unlocked mode; scroll to zoom.
+- **F:** inspect a nearby place. **Q / 1–4:** select an available action. **E:** confirm it.
+- **J:** journal. Touch devices have a movement pad and jump button.
 
-There are four reachable landmarks and five quest stages. Actions change landmark effects, weather, lighting, NPC positions, and relationships. The map and player position persist between turns. Walking, rendering, and repeat inspections make no model calls. A new AI call is needed only for initial creation or a meaningful story action. World state is signed on the server; save/resume and interrupted-action retries use a separate browser save from the illustrated adventure.
+Eight persistent places span four acts and typically 13–18 decisions. Only decisions advance the companion deadline: help by your third action to earn early trust, or follow a later rescue route. Recover tools and records, repair machinery, and physically open the northern gate. Unlock the vault, take its relic, activate the relay, and learn the final cost. Restoring the world, escaping with the relic, and binding an earned shared pact produce different endings. A pact requires early rescue, a promise, stable power, and never taking unstable power. Delayed rescue and repaired damage remain in memory.
 
-Supported environments are forest, city, space, ocean, desert, mountain, and interior. Supported landmark meshes include trees, wells, campfires, portals, cottages, terminals, towers, crystals, archives, and gardens. Model-generated names and descriptions adapt these to the setting. Supporting characters use reusable humanoid, robot, dragon, small-animal, or octopus forms where their descriptions match. Mood and art preferences influence story, palette, and lighting; they do not create arbitrary new meshes or guarantee a requested raster painting style in 3D.
+The source can rupture into a hazardous debris field. Jump over low debris or repair the source; roaming energy surges in the northern district calm when the relay is activated; vitality depletion returns you to the central clearing without deleting story progress. Gates slide, bridge planks extend, gears turn, the vault opens, the relic disappears when collected, companions relocate, and the sanctum unfolds. Endings change the world’s scenery and lighting. Textured stone and wood, smooth foliage, detailed props, soft shadows, animated light, and denser instanced scenery improve the procedural art.
 
-The existing **Illustrated story** mode and original train demo remain available. World creation needs the Gemini server key; 3D rendering does not use the Cloudflare image API.
+Actions update signed mechanics immediately, without a model call. AI prose follows asynchronously, with a saved mechanical outcome shown if narration fails. Walking, looking, jumping, and inspecting require no AI generation. Inventory, flags, trust, turn deadlines, available actions, and ending eligibility are deterministic; an AI response cannot rewrite them. The engine and plot structure are reusable templates themed by the prompt. This is stylized procedural 3D, not photorealistic or arbitrary model generation. Seven supported biomes and ten base landmark types remain available.
+
+The illustrated story and original train demo remain available. Gemini is needed to create a world and write narration; 3D rendering uses no image API. Native browser pointer lock requires a user gesture and may be restricted by embedded previews; open the standalone website or use drag controls.
 
 ### Implementation and attribution
 
-`backend/world.js` validates generated blueprints and quest states; `backend/api.js` routes both story modes. `public/world-engine.js` builds and updates the scene, and `public/world.js` handles exploration, journal, saves, and API events. Tests cover the five-stage quest, immutable landmarks, clue memory, duplicate requests, and invalid/tampered actions.
+`public/world-rules.js` defines the campaign, `backend/world.js` validates blueprints and signs transitions, `public/world-engine.js` renders and simulates movement, and `public/world.js` handles interaction and saved progress. Tests cover early and late rescue, all endings, irreversible decisions, route prerequisites, idempotency, invalid requests, and narration failure. Browser checks cover movement, jumping, camera lock, gate collision, action selection, visible changes, and save/resume.
 
-The team's original `make-x20/fantasy-roam` prototype is retained unchanged. Its procedural scenery, WASD movement, and follow-camera approach informed this implementation. Three.js 0.160.1 is vendored locally (with its MIT license in `public/vendor/THREE-LICENSE.txt`) so gameplay does not depend on loading a runtime CDN. The renderer uses reusable geometry and instanced scenery; map generation returns data rather than executable code.
+The team's original `make-x20/fantasy-roam` prototype remains unchanged. Its procedural scenery, movement, and follow-camera approach informed this implementation. Three.js 0.160.1 is vendored locally with its MIT license in `public/vendor/THREE-LICENSE.txt`.
 
 ## Core Concept
 

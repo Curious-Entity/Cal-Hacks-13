@@ -369,5 +369,5 @@ if (journey) {
 }
 refreshConfig();
 updateExperience();
-try{$('#resume-world').hidden=!JSON.parse(localStorage.getItem('last-light-world-v1'))?.journey?.token;}catch{}
+try{$('#resume-world').hidden=!JSON.parse(localStorage.getItem('last-light-world-v2'))?.journey?.token;}catch{}
 if(new URL(location.href).searchParams.has('create'))showSetup();

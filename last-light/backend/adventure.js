@@ -150,13 +150,13 @@ export async function signJourney(state, env) {
 }
 export async function verifyJourney(token, env) {
   try {
-    if (typeof token !== 'string' || token.length > 65000) throw new Error('Invalid token');
+    if (typeof token !== 'string' || token.length > 160000) throw new Error('Invalid token');
     const [payload, signature, extra] = token.split('.');
     if (!payload || !signature || extra) throw new Error('Invalid token');
     const valid = await crypto.subtle.verify('HMAC', await signingKey(env), unurl64(signature), encoder.encode(payload));
     if (!valid) throw new Error('Invalid signature');
     const state = JSON.parse(decoder.decode(unurl64(payload)));
-    if (state.version !== 2 || state.expiresAt < Date.now() || !Number.isInteger(state.sceneIndex) || state.sceneIndex < 1 || state.sceneIndex > TOTAL_SCENES) throw new Error('Expired journey');
+    if (!((state.version === 2) || (state.version === 3 && state.mode === 'world' && Number.isInteger(state.campaign?.turn) && state.campaign.turn <= 40)) || state.expiresAt < Date.now() || !Number.isInteger(state.sceneIndex) || state.sceneIndex < 1 || state.sceneIndex > TOTAL_SCENES) throw new Error('Expired journey');
     return state;
   } catch (error) {
     if (error instanceof StoryError && error.code === 'NOT_CONFIGURED') throw error;
