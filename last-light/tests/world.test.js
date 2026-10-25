@@ -2,11 +2,11 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {handleAPI} from '../backend/api.js';
 import {validateBlueprint} from '../backend/world.js';
-import {worldFixture,worldProviderFixture} from './world-fixtures.js';
+import {worldFixture,worldProviderFixture,completionFixture} from './world-fixtures.js';
 import {initialCampaign,advanceCampaign,availableActions,campaignBeat} from '../public/world-rules.js';
 const setup={premise:'A young gardener explores a forest station where trees remember lost signals.',tone:'custom',customMood:'Hopeful and quietly mysterious.',artStyle:'custom',customArtStyle:'Rich painted textures, indigo shadows, warm amber light.'};
 const env=()=>({GEMINI_API_KEY:'test-world-'+crypto.randomUUID()});
-const request=(path,payload)=>new Request('https://world.test/api/world/'+path,{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify(payload)});
+const request=(path,payload)=>{if(path==='act'&&payload.token?.includes('.')){try{const state=JSON.parse(Buffer.from(payload.token.split('.')[0],'base64url').toString());payload={...payload,challenge:completionFixture(payload.actionId,state.world)};}catch{}}return new Request('https://world.test/api/world/'+path,{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify(payload)});};
 async function start(environment,provider=worldProviderFixture()){const response=await handleAPI(request('start',{setup,requestId:crypto.randomUUID()}),environment,provider);assert.equal(response.status,200);return response.json();}
 const world=validateBlueprint(worldFixture());
 const play=(ids,c=initialCampaign())=>ids.reduce((c,id)=>advanceCampaign(world,c,id),c);

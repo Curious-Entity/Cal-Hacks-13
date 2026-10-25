@@ -18,7 +18,7 @@ The current app generates a five-scene adventure from your premise, character, t
 To use your own keys, clone this branch and create a local configuration:
 
 ```bash
-git clone --branch feature/branching-world-upgrade https://github.com/Curious-Entity/Cal-Hacks-13.git
+git clone --branch feature/playable-world-missions https://github.com/Curious-Entity/Cal-Hacks-13.git
 cd Cal-Hacks-13
 cp last-light/.env.example last-light/.env
 # Edit last-light/.env locally; add GEMINI_API_KEY, CLOUDFLARE_ACCOUNT_ID, and CLOUDFLARE_API_TOKEN.
@@ -79,29 +79,29 @@ Cloudflare's Workers Free plan provides a shared account allowance of 10,000 Neu
 
 Live Cloudflare generation was verified on October 24, 2026; the first test image took about 37 seconds. Latency varies with service capacity. The [official Klein integration example](https://developers.cloudflare.com/changelog/post/2026-01-15-flux-2-klein-4b-workers-ai/) documents multipart requests and reference inputs. Image descriptions and object clues remain playable while generation runs.
 
-## Explorable 3D campaign
+## Playable 3D missions
 
-Choose **Explore a 3D world**, enter your premise, and set your character, mood, and art direction. Start a **new world** for the expanded campaign. Original world saves remain under their old browser storage key; the new campaign saves separately.
+Choose **Explore a 3D world** and start a **new world**. The current version saves separately under `last-light-world-v3`; earlier saves remain in your browser. Clone `feature/playable-world-missions` for this version.
 
-- **WASD / arrows:** walk. **Hold R:** sprint with regenerating stamina.
-- **Shift:** toggle mouse camera lock and shoulder view. **Escape:** release the cursor.
-- **Space:** jump; land before jumping again. Drag to look in unlocked mode; scroll to zoom.
-- **F:** inspect a nearby place. **Q / 1–4:** select an available action. **E:** confirm it.
-- **J:** journal. Touch devices have a movement pad and jump button.
+The scene is the interface: completing physical objectives advances the signed campaign automatically. There are no story-action menus or E-to-complete shortcuts. **WASD / arrows** move, **Space** jumps, **R** sprints, **Shift** toggles camera lock, **Escape** releases it, **F** reads a nearby place’s clues, and **J** opens the journal. Touch controls include movement, jumping, and field notes.
 
-Eight persistent places span four acts and typically 13–18 decisions. Only decisions advance the companion deadline: help by your third action to earn early trust, or follow a later rescue route. Recover tools and records, repair machinery, and physically open the northern gate. Unlock the vault, take its relic, activate the relay, and learn the final cost. Restoring the world, escaping with the relic, and binding an earned shared pact produce different endings. A pact requires early rescue, a promise, stable power, and never taking unstable power. Delayed rescue and repaired damage remain in memory.
+- Find your companion and escort them into the blue safe clearing. They follow your actual route, pause when left behind, and can be stunned by moving surges. Lead around hazards and stay within 18 steps. Early and late rescue have different consequences.
+- Jump through three floating power cells, carry their charge into the socket, and dodge expanding startup waves. The mechanism needs both charge time and successful jumps; standing still cannot complete it.
+- Recover records and read a floor-pattern sign. Walk the correct symbols in order. A wrong step resets the pattern. The workshop repair circuit and vault seals use related puzzles with different sequences.
+- Charge the northern gate, dodge its waves, and then physically pass through the opening. The relay has a longer defense encounter and calms the northern hazards.
+- Recover the relic, awaken the sanctum by jumping through its lights, and learn the cost of the final choice. Walk through a colored arch to restore the world, escape with the relic, or bind an earned shared pact. Risky power and delayed rescues still affect eligibility.
 
-The source can rupture into a hazardous debris field. Jump over low debris or repair the source; roaming energy surges in the northern district calm when the relay is activated; vitality depletion returns you to the central clearing without deleting story progress. Gates slide, bridge planks extend, gears turn, the vault opens, the relic disappears when collected, companions relocate, and the sanctum unfolds. Endings change the world’s scenery and lighting. Textured stone and wood, smooth foliage, detailed props, soft shadows, animated light, and denser instanced scenery improve the procedural art.
+Maps use seeded asymmetric district plans with winding connections, mirrored arrangements, and varied positions. A sheltered camp, archive courtyard, power basin, workshop, northern ruins, and final arches give the areas different silhouettes. The minimap follows the routes. This remains a procedural game built from a reusable mechanic vocabulary; the prompt themes its fiction, palette, characters, and props rather than generating arbitrary game code or unlimited new mechanics.
 
-Actions update signed mechanics immediately, without a model call. AI prose follows asynchronously, with a saved mechanical outcome shown if narration fails. Walking, looking, jumping, and inspecting require no AI generation. Inventory, flags, trust, turn deadlines, available actions, and ending eligibility are deterministic; an AI response cannot rewrite them. The engine and plot structure are reusable templates themed by the prompt. This is stylized procedural 3D, not photorealistic or arbitrary model generation. Seven supported biomes and ten base landmark types remain available.
+Unfinished collections, puzzle steps, charging progress, escort route and companion position survive reloads. Failed syncs keep a completed objective for explicit retry. AI narration arrives after the mechanical outcome; a slow or failed model request does not stop exploration. Journal reading pauses the local simulation. Movement, jumping, partial puzzle attempts, and inspection do not call the model. Initial generation and completed objectives do.
 
-The illustrated story and original train demo remain available. Gemini is needed to create a world and write narration; 3D rendering uses no image API. Native browser pointer lock requires a user gesture and may be restricted by embedded previews; open the standalone website or use drag controls.
+The API validates completion payloads before advancing the campaign. These payloads are browser telemetry for a single-player game, not a server-authoritative anti-cheat simulation. Campaign transitions and inventory remain signed. The illustrated adventure and original train demo remain available.
 
 ### Implementation and attribution
 
-`public/world-rules.js` defines the campaign, `backend/world.js` validates blueprints and signs transitions, `public/world-engine.js` renders and simulates movement, and `public/world.js` handles interaction and saved progress. Tests cover early and late rescue, all endings, irreversible decisions, route prerequisites, idempotency, invalid requests, and narration failure. Browser checks cover movement, jumping, camera lock, gate collision, action selection, visible changes, and save/resume.
+`world-layout.js` supplies bounded plans; `world-challenges.js` defines completion contracts; `world-missions.js` runs physical activities; `world-engine.js` renders and simulates movement; `world.js` handles saves and API events. `backend/world.js` validates the generated fiction and signs completed objectives. The shared campaign rules retain trust, inventory, irreversible choices and ending requirements. Tests cover map validity, completion contracts, all endings, API failures, save/resume, and actual browser play.
 
-The team's original `make-x20/fantasy-roam` prototype remains unchanged. Its procedural scenery, movement, and follow-camera approach informed this implementation. Three.js 0.160.1 is vendored locally with its MIT license in `public/vendor/THREE-LICENSE.txt`.
+The team's original `make-x20/fantasy-roam` prototype remains unchanged. Its procedural scenery, movement, and follow camera informed this implementation. Three.js 0.160.1 is vendored locally with its MIT license in `public/vendor/THREE-LICENSE.txt`.
 
 ## Core Concept
 

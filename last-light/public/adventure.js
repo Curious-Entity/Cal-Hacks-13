@@ -339,7 +339,7 @@ $('#setup-form').addEventListener('input',event=>{ if (['ai-illustrations','imag
 $('#ai-illustrations').addEventListener('change',()=>{$('#image-frequency-field').hidden=!$('#ai-illustrations').checked;});
 $('#tone').addEventListener('change',updatePreferenceFields);
 $('#art-style').addEventListener('change',updatePreferenceFields);
-function updateExperience(){const world=$('#experience').value==='world';$('.image-option').hidden=world;$('#image-frequency-field').hidden=world||!$('#ai-illustrations').checked;$('#experience-help').textContent=world?'Walk through a small world, discover clues, and shape its story.':'Read one scene at a time, inspect objects, and decide what happens next.';}
+function updateExperience(){const world=$('#experience').value==='world';$('.image-option').hidden=world;$('#image-frequency-field').hidden=world||!$('#ai-illustrations').checked;$('#experience-help').textContent=world?'Jump for power cells, escort companions, solve floor puzzles, and shape the world through play.':'Read one scene at a time, inspect objects, and decide what happens next.';}
 $('#experience').addEventListener('change',updateExperience);
 const examples = {
   ocean: { premise:'I’m a detective in an underwater city where everyone has forgotten yesterday. A letter arrives in my own handwriting, warning me not to trust the sunrise.', protagonist:'A rookie detective who can hear echoes of lost memories', details:'My partner is a nervous octopus. The city runs on bottled sunlight. Make the mystery hopeful, with no combat.' },
@@ -369,5 +369,5 @@ if (journey) {
 }
 refreshConfig();
 updateExperience();
-try{$('#resume-world').hidden=!JSON.parse(localStorage.getItem('last-light-world-v2'))?.journey?.token;}catch{}
+try{$('#resume-world').hidden=!JSON.parse(localStorage.getItem('last-light-world-v3'))?.journey?.token;}catch{}
 if(new URL(location.href).searchParams.has('create'))showSetup();
