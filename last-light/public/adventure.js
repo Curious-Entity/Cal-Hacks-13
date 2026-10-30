@@ -1,5 +1,6 @@
 import { examples, localizeExampleValue } from './examples.js';
 import { initLanguage, t, getLanguage } from './i18n.js';
+import {PREPARED_EXAMPLES,matchesPreparedExample} from './prepared-examples.js';
 import { sceneArt } from './scene-art.js';
 import { objectIcon, objectPositions } from './scene-objects.js';
 
@@ -8,6 +9,8 @@ initLanguage();
 const SAVE = 'last-light-generated-v2';
 const DRAFT = 'last-light-setup-v2';
 const exampleFields = { premise:'#premise', protagonist:'#protagonist', details:'#story-details', customMood:'#custom-mood', customArtStyle:'#custom-art-style' };
+let selectedExample = null;
+let exampleLoadController = null;
 let journey = null;
 let pending = null;
 let busy = false;
@@ -33,10 +36,10 @@ function save() {
   catch { storageAvailable = false; }
 }
 function readSetup() {
-  return { language:getLanguage(), premise: $('#premise').value.trim(), protagonist: $('#protagonist').value.trim(), details: $('#story-details').value.trim(), tone: $('#tone').value, artStyle: $('#art-style').value, customMood:$('#custom-mood').value.trim(), customArtStyle:$('#custom-art-style').value.trim(), illustrations: $('#ai-illustrations').checked, illustrationMode:$('#image-frequency').value };
+  return { language:getLanguage(), experience:$('#experience').value,premise: $('#premise').value.trim(), protagonist: $('#protagonist').value.trim(), details: $('#story-details').value.trim(), tone: $('#tone').value, artStyle: $('#art-style').value, customMood:$('#custom-mood').value.trim(), customArtStyle:$('#custom-art-style').value.trim(), illustrations: $('#experience').value==='illustrated' && $('#ai-illustrations').checked, illustrationMode:$('#image-frequency').value };
 }
 function saveDraft() {
-  const draft = readSetup();
+  const draft = {...readSetup(),preparedExample:selectedExample?.id||null};
   // Keep exact typed text in drafts; only API submissions trim whitespace.
   for (const [field, selector] of Object.entries(exampleFields)) draft[field] = $(selector).value;
   try { localStorage.setItem(DRAFT, JSON.stringify(draft)); } catch { /* In-memory fallback. */ }
@@ -49,11 +52,43 @@ function updatePreferenceFields() {
 }
 function fillSetup(setup) {
   if (!setup || typeof setup !== 'object') return;
-  for (const [key, selector] of Object.entries({ premise:'#premise', protagonist:'#protagonist', details:'#story-details', tone:'#tone', artStyle:'#art-style', customMood:'#custom-mood', customArtStyle:'#custom-art-style' })) if (typeof setup[key] === 'string') $(selector).value = localizeExampleValue(key, setup[key], getLanguage());
+  for (const [key, selector] of Object.entries({ premise:'#premise', protagonist:'#protagonist', details:'#story-details', tone:'#tone', artStyle:'#art-style', customMood:'#custom-mood', customArtStyle:'#custom-art-style',experience:'#experience' })) if (typeof setup[key] === 'string') $(selector).value = localizeExampleValue(key, setup[key], getLanguage());
   if (typeof setup.illustrations==='boolean') { $('#ai-illustrations').checked=setup.illustrations;imagePreferencesSaved=true; }
   if (['on-demand','automatic'].includes(setup.illustrationMode)) $('#image-frequency').value=setup.illustrationMode;
   updatePreferenceFields();
   if (setup.details) $('.story-details').open = true;
+  if(selectedExample&&!matchesPreparedExample(readSetup(),selectedExample))selectedExample=null;
+  if(setup.preparedExample&&PREPARED_EXAMPLES[setup.preparedExample]&&matchesPreparedExample(readSetup(),PREPARED_EXAMPLES[setup.preparedExample]))selectedExample=PREPARED_EXAMPLES[setup.preparedExample];
+  updateExampleControls();
+}
+function updateExampleControls(){
+  const selected=selectedExample;
+  $('#prepared-example-note').hidden=!selected;
+  $('#prepared-example-title').textContent=selected?'Prepared example · '+selected.title:'';
+  if(!busy)$('#begin-button span').textContent=selected?'Open example adventure':'Generate my adventure';
+  document.querySelectorAll('[data-prepared-example]').forEach(button=>{button.setAttribute('aria-pressed',String(button.dataset.preparedExample===selected?.id));button.disabled=busy;});
+}
+async function openPreparedExample(example){
+  setBusy(true);$('#setup-error').hidden=true;
+  const controller=new AbortController();exampleLoadController=controller;
+  $('#example-loading-art').src=example.image;$('#example-loading-title').textContent='Opening '+example.title;
+  $('#example-loading-progress').value=0;$('#example-loading-percent').textContent='0%';
+  $('#example-loading-status').textContent=example.id==='train'?'Loading the prepared illustrations and story.':'Loading the prepared world and its interactions.';
+  $('#example-loading').showModal();let completed=0;
+  try{
+    await Promise.all(example.assets.map(async path=>{
+      const response=await fetch(path,{signal:controller.signal,cache:'force-cache'});
+      if(!response.ok)throw new Error('Some of the example could not load. Please try again.');
+      const blob=await response.blob();
+      if(/\.(jpg|png|webp)$/.test(path)&&typeof createImageBitmap==='function'){const bitmap=await createImageBitmap(blob);bitmap.close();}
+      if(controller.signal.aborted)return;
+      completed++;$('#example-loading-progress').value=completed/example.assets.length;$('#example-loading-percent').textContent=Math.round(completed/example.assets.length*100)+'%';
+    }));
+    if(controller.signal.aborted)return;
+    sessionStorage.removeItem(example.saveKey);
+    location.assign(example.target);
+  }catch(error){if(!controller.signal.aborted)showError(error.message||'The example could not open. Please try again.',true);}
+  finally{controller.abort();exampleLoadController=null;$('#example-loading').close();setBusy(false);updateExampleControls();}
 }
 function isSavedJourney(value) {
   const state = value?.state;
@@ -99,6 +134,7 @@ async function refreshConfig() {
     }
     $('#image-frequency-field').hidden = !$('#ai-illustrations').checked;
     $('#image-access-note').textContent = config.illustrations ? `${config.imageProvider === 'cloudflare' ? 'Cloudflare · daily free allowance.' : config.imageProvider === 'openai' ? 'OpenAI · low quality.' : 'AI illustration.'} Paint only when you ask, or once per scene. Saved images are reused.` : 'Atmospheric scenes are included. Connect an image provider to paint additional illustrations.';
+    updateExperience();
   } catch {
     config = null;
     $('#connection-status').classList.remove('ready');$('#connection-status').classList.add('failed');
@@ -110,7 +146,7 @@ async function refreshConfig() {
 function setBusy(value) {
   busy = value;
   $('#begin-button').disabled = value;
-  $('#begin-button span').textContent = value ? 'Writing your opening scene…' : 'Begin my adventure';
+  $('#begin-button span').textContent = value ? selectedExample?'Opening example adventure…':'Writing your opening scene…' : selectedExample?'Open example adventure':'Generate my adventure';
   $('#new-adventure').disabled = value || inspecting;
   $('#resume-button').disabled = value;
   $('#turn-loading').hidden = !value;
@@ -164,13 +200,13 @@ async function runRequest(request) {
 function showStory() {
   $('#setup-screen').hidden = true; $('#adventure-screen').hidden = false;
   $('#adventure-journal').hidden = false; $('#new-adventure').hidden = false;
-  $('.sample-link').hidden = true;
+  document.querySelectorAll('.sample-link').forEach(link=>link.hidden=true);
 }
 function showSetup() {
   imageRun++;
   $('#setup-screen').hidden = false; $('#adventure-screen').hidden = true;
   $('#adventure-journal').hidden = true; $('#new-adventure').hidden = true;
-  $('.sample-link').hidden = false;
+  document.querySelectorAll('.sample-link').forEach(link=>link.hidden=false);
   $('#resume-button').hidden = !journey;
   $('#setup-error').hidden = true;
   $('#premise').focus({ preventScroll:true });
@@ -342,20 +378,36 @@ async function loadVisual(generateIfMissing = false) {
 
 $('#setup-form').addEventListener('submit',async event=>{
   event.preventDefault(); if (busy) return;
+  if(selectedExample){if(matchesPreparedExample(readSetup(),selectedExample)){await openPreparedExample(selectedExample);return;}selectedExample=null;updateExampleControls();}
   await refreshConfig();
   if (!config?.configured) { showError(config ? 'The text provider is not configured. Add Cloudflare Workers AI or Gemini credentials on the server; the train demo is available now.' : 'Start the app server with python3 last-light/run.py, then open the URL it prints.',true); return; }
   const setup = readSetup();
+  if(setup.experience==='world') {
+    try{sessionStorage.setItem('last-light-world-request',JSON.stringify({setup,requestId:crypto.randomUUID()}));location.assign('/world.html?new=1');}catch{showError('Browser storage is unavailable. Enable storage for this site to create and save your world.',true);}
+    return;
+  }
   const requestId = pending?.type === 'start' && JSON.stringify(pending.payload.setup) === JSON.stringify(setup) ? pending.payload.requestId : crypto.randomUUID();
   runRequest({ type:'start',payload:{ setup,requestId } });
 });
-$('#setup-form').addEventListener('input',event=>{ if (['ai-illustrations','image-frequency'].includes(event.target.id)) imagePreferencesSaved=true;saveDraft(); });
+$('#setup-form').addEventListener('input',event=>{ selectedExample=null;updateExampleControls();if (['ai-illustrations','image-frequency'].includes(event.target.id)) imagePreferencesSaved=true;saveDraft(); });
 $('#ai-illustrations').addEventListener('change',()=>{$('#image-frequency-field').hidden=!$('#ai-illustrations').checked;});
 $('#tone').addEventListener('change',updatePreferenceFields);
 $('#art-style').addEventListener('change',updatePreferenceFields);
+function updateExperience(){const world=$('#experience').value==='world';$('.image-option').hidden=world;$('#image-frequency-field').hidden=world||!$('#ai-illustrations').checked;$('#experience-help').textContent=world?'Jump for power cells, escort companions, solve floor puzzles, and shape the world through play.':'Read one scene at a time, inspect objects, and decide what happens next.';}
+$('#experience').addEventListener('change',updateExperience);
 document.querySelectorAll('[data-example]').forEach(button=>button.addEventListener('click',()=>{
-  fillSetup(examples[button.dataset.example][getLanguage()]);
+  selectedExample=null;fillSetup(examples[button.dataset.example][getLanguage()]);updateExampleControls();
   $('#premise').focus(); saveDraft();
 }));
+document.querySelectorAll('[data-prepared-example]').forEach(button=>button.addEventListener('click',()=>{
+  if(busy)return;selectedExample=PREPARED_EXAMPLES[button.dataset.preparedExample];
+  fillSetup(selectedExample.setup);updateExperience();updateExampleControls();$('#image-frequency-field').hidden=selectedExample.setup.experience!=='illustrated';
+  try{localStorage.setItem(DRAFT,JSON.stringify({...readSetup(),preparedExample:selectedExample.id}));}catch{}
+  $('#setup-form').scrollIntoView({behavior:matchMedia('(prefers-reduced-motion: reduce)').matches?'instant':'smooth',block:'start'});$('#premise').focus({preventScroll:true});
+}));
+$('#use-live-generation').onclick=()=>{selectedExample=null;updateExampleControls();try{localStorage.setItem(DRAFT,JSON.stringify(readSetup()));}catch{}};
+$('#cancel-example-loading').onclick=()=>exampleLoadController?.abort();
+$('#example-loading').addEventListener('cancel',event=>{event.preventDefault();exampleLoadController?.abort();});
 $('#new-adventure').addEventListener('click',()=>$('#new-adventure-dialog').showModal());
 $('#cancel-new').addEventListener('click',()=>$('#new-adventure-dialog').close());
 $('#confirm-new').addEventListener('click',()=>{ $('#new-adventure-dialog').close(); showSetup(); });
@@ -371,7 +423,7 @@ if (journey) {
   renderStory(); showStory(); loadVisual();
   if (pending?.type === 'choose') { showError('Your last request did not finish. Retry it when you are ready.'); $('#retry-turn').hidden = false; }
 } else if (pending?.type === 'start') {
-  fillSetup(pending.payload.setup); showError('Your opening scene did not finish. Choose “Begin my adventure” to retry the same request.',true);
+  fillSetup(pending.payload.setup); showError('Your opening scene did not finish. Choose “Generate my adventure” to retry the same request.',true);
 }
 refreshConfig();
 
@@ -396,3 +448,6 @@ window.addEventListener('languagechange', () => {
   renderObjects(); updateInspectionControls();
   if (!$('#generated-art').hidden) $('#generated-art').alt = t('Illustration of {0}: {1}',state.scene.location,state.scene.imagePrompt);
 });
+updateExperience();
+try{$('#resume-world').hidden=!JSON.parse(localStorage.getItem('last-light-world-v3'))?.journey?.token;}catch{}
+if(new URL(location.href).searchParams.has('create'))showSetup();

@@ -4,18 +4,21 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="theme-color" content="#0b171c">
-  <meta name="description" content="A night train. Two strangers. A story that remembers what you choose. Play Last Light, an interactive mystery.">
-  <title>Last Light — a story that remembers</title>
+  <meta name="description" content="Unwritten: a night train, two strangers, and choices that shape your journey home. Explore The Westbound Limited, a prepared illustrated adventure.">
+  <title>Unwritten — The Westbound Limited</title>
   <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='16' fill='%230b171c'/%3E%3Cpath d='M32 8 50 32 32 56 14 32Z' fill='none' stroke='%23bdddba' stroke-width='3'/%3E%3C/svg%3E">
   <link rel="stylesheet" href="styles.css">
+  <link rel="stylesheet" href="train.css">
+  <link rel="preload" as="image" href="/assets/train/carriage-arrival.jpg">
   <script type="module" src="app.js"></script>
 </head>
-<body>
+<body class="train-showcase">
   <div class="app-shell">
     <header class="topbar">
-      <a class="brand" href="./" aria-label="Last Light home"><span class="brand-symbol" aria-hidden="true">◇</span><span>LAST LIGHT<small>A STORY THAT REMEMBERS</small></span></a>
+      <a class="brand" href="./" aria-label="Unwritten home"><span class="brand-symbol" aria-hidden="true">◇</span><span>UNWRITTEN<small>THE NEXT CHAPTER IS YOURS</small></span></a>
       <div class="route-label"><span class="live-dot"></span> THE WESTBOUND LIMITED <span class="route-divider">/</span> 03:17 AM</div>
       <nav aria-label="Game controls" class="controls">
+        <button id="motion-button" class="quiet-button" aria-pressed="true">Motion on</button>
         <button id="sound-button" class="quiet-button" aria-pressed="false"><span aria-hidden="true">♫</span> <span id="sound-label">Sound off</span></button>
         <button id="journal-button" class="quiet-button"><span aria-hidden="true">▤</span> Journal <span id="memory-count" class="count">0</span></button>
         <button id="restart-button" class="icon-button" aria-label="Start a new story" title="Start a new story">↺</button>
@@ -29,21 +32,23 @@
 
     <main>
       <div class="chapter-heading"><div><p class="eyebrow" id="chapter-label">CHAPTER 01 · THE PHOTOGRAPH</p><h1 id="chapter-title">Everyone has a past.<br>Yours is on this train.</h1></div><p class="intro-caption">A little mystery.<br>A choice that stays with you.</p></div>
+      <nav class="journey-navigation" aria-label="Chapter history"><p>YOUR JOURNEY <small>Revisit any chapter you have reached</small></p><ol id="chapter-progress" class="chapter-progress" aria-label="Story chapters"></ol></nav>
+      <div id="history-banner" class="history-banner" hidden><span id="history-label" role="status"></span><div><button id="history-previous" class="quiet-button">← Previous</button><button id="history-next" class="quiet-button">Next →</button><button id="history-return" class="primary-button">Return to current chapter ↗</button></div></div>
       <div class="game-layout">
-        <section class="world" aria-label="Interactive train carriage">
-          <img class="world-art" src="carriage.svg" alt="An empty midnight train carriage, lit by warm lamps, with mountains beyond rain-streaked windows.">
-          <div class="world-tint" aria-hidden="true"></div>
-          <div class="rain" aria-hidden="true"></div>
-          <div class="scene-topline"><span><span class="live-dot"></span> CARRIAGE 07</span><span id="world-status">SOMEWHERE BEFORE DAYLIGHT</span></div>
-          <button class="hotspot person-hotspot mara-hotspot" data-inspect="mara" aria-label="Talk to Mara, the passenger by the window"><span class="person mara-person" aria-hidden="true"><span class="person-head"></span><span class="person-body"></span></span><span class="hotspot-caption"><i></i> Mara <span>↗</span></span></button>
-          <button class="hotspot person-hotspot eli-hotspot" data-inspect="eli" aria-label="Talk to Eli, the conductor"><span class="person eli-person" aria-hidden="true"><span class="person-head"></span><span class="person-body"></span></span><span class="hotspot-caption"><i></i> Eli <span>↗</span></span></button>
-          <button class="hotspot object-hotspot photo-hotspot" data-inspect="photograph" aria-label="Inspect the photograph on the table"><span class="photo-object" aria-hidden="true">⌁</span><span class="hotspot-caption"><i></i> Photograph <span>+</span></span></button>
-          <button class="hotspot object-hotspot radio-hotspot" data-inspect="radio" aria-label="Inspect the radio"><span class="hotspot-caption"><i></i> Radio <span>+</span></span></button>
-          <div class="world-bottom"><span class="location-icon" aria-hidden="true">⌖</span><div><strong id="location-name">The observation car</strong><span id="scene-hint">Look closer. Some things are waiting to be found.</span></div><span class="scene-number" id="scene-number">01 / 03</span></div>
+        <section class="world train-world" aria-label="Interactive illustrated train carriage">
+          <div class="scene-topline"><span><span class="live-dot"></span> THE WESTBOUND LIMITED</span><span id="world-status">SOMEWHERE BEFORE DAYLIGHT</span></div>
+          <div class="train-stage" id="train-stage" data-stage="arrival" data-motion="running">
+            <img class="world-art" id="train-art" src="/assets/train/carriage-arrival.jpg" width="1536" height="1024" fetchpriority="high" alt="Mara sits beside a rain-streaked train window. Eli, the conductor, stands beside a wooden radio. A face-down photograph rests on the foreground table, and a red brake hangs by the door.">
+            <img class="table-cleared" id="table-cleared" src="/assets/train/carriage-collected.jpg" width="1536" height="1024" alt="" aria-hidden="true" hidden>
+            <div class="train-atmosphere" aria-hidden="true"></div>
+            <div id="train-hotspots"></div>
+          </div>
+          <div class="world-bottom"><span class="location-icon" aria-hidden="true">⌖</span><div><strong id="location-name">The observation car</strong><span id="scene-hint">Look closer. Some things are waiting to be found.</span></div><span class="scene-number" id="scene-number">01 / 05</span></div>
+          <div class="train-scene-toolbar"><span id="scene-invitation">Start with the photograph on the table.</span><button id="clue-toggle" aria-pressed="true">Hide labels</button></div>
         </section>
 
         <section class="story-panel" aria-label="Story and choices">
-          <div class="story-topline"><span class="eyebrow">YOUR STORY</span><span class="mode-tag">PLAYABLE PROTOTYPE</span></div>
+          <div class="story-topline"><span class="eyebrow">YOUR STORY</span><span class="mode-tag">FEATURED ADVENTURE</span></div>
           <div class="speaker-row"><span id="speaker-avatar" class="avatar">✧</span><div><strong id="speaker-name">The journey</strong><span id="speaker-role">Somewhere between here and home</span></div><span class="speaking-dots" aria-hidden="true">···</span></div>
           <div id="story-content" class="story-content" aria-live="polite" aria-atomic="true"></div>
           <div id="memory-notice" class="memory-notice" hidden><span aria-hidden="true">✧</span><span id="memory-notice-text"></span></div>
@@ -53,12 +58,14 @@
         </section>
       </div>
 
-      <footer class="game-footer"><ol class="chapter-progress" aria-label="Story progress"><li data-chapter="0"><span>01</span> The photograph</li><li data-chapter="1"><span>02</span> A borrowed truth</li><li data-chapter="2"><span>03</span> Before daylight</li></ol><p>Two strangers. One train. <em>Your consequences.</em></p></footer>
-      <div class="inventory-strip"><span class="eyebrow">IN YOUR POCKET</span><span id="inventory-content">A one-way ticket. A feeling you have been here before.</span><span class="prototype-note">A short story about trust &amp; remembering</span></div>
+      <div class="inventory-strip"><button id="pocket-photo" class="pocket-photo" hidden><img src="/assets/train/station-photograph.jpg" alt="" width="58" height="40"><span>View your photograph ↗</span></button><span class="eyebrow">IN YOUR POCKET</span><span id="inventory-content">A one-way ticket. A feeling you have been here before.</span><span class="prototype-note">A short story about trust &amp; remembering</span></div>
     </main>
   </div>
 
-  <dialog id="inspect-dialog" class="modal"><form method="dialog"><button class="modal-close icon-button" aria-label="Close inspection">×</button></form><p class="eyebrow" id="inspect-label">A CLOSER LOOK</p><h2 id="inspect-title"></h2><div id="inspect-content" class="modal-copy"></div><button id="inspect-action" class="primary-button" hidden></button></dialog>
+  <dialog id="inspect-dialog" class="modal"><form method="dialog"><button class="modal-close icon-button" aria-label="Close inspection">×</button></form><p class="eyebrow" id="inspect-label">A CLOSER LOOK</p><h2 id="inspect-title"></h2><div id="inspect-media" class="inspect-media" hidden></div><div id="photo-viewer" class="photo-viewer" hidden>
+    <div id="photo-card" class="photo-card" data-side="front"><figure id="photo-front" class="photo-front"><img src="/assets/train/station-photograph.jpg" alt="A worn photograph of Mara in her green coat and mustard scarf, a young traveler, and Eli in his conductor uniform, smiling together at a sunlit mountain station." width="1536" height="1024"></figure><div id="photo-back" class="photo-back" aria-hidden="true"><span>On the back, in your handwriting</span><blockquote>“If we forget again,<br>find each other.”</blockquote><small>Three tickets. One way home.</small></div></div>
+    <button id="flip-photo" class="quiet-button" aria-pressed="false">↻ Read the back of the photograph</button>
+  </div><div id="inspect-content" class="modal-copy"></div><button id="inspect-action" class="primary-button" hidden></button></dialog>
   <dialog id="journal-dialog" class="modal journal-modal"><form method="dialog"><button class="modal-close icon-button" aria-label="Close journal">×</button></form><p class="eyebrow">NOT EVERYTHING IS FORGOTTEN</p><h2>Your memory journal</h2><p class="modal-copy">The little things you did. The things they remember.</p><div id="relationships" class="relationships"></div><ol id="journal-entries" class="journal-entries"></ol></dialog>
   <dialog id="restart-dialog" class="modal"><p class="eyebrow">ANOTHER WAY HOME</p><h2>Begin a different story?</h2><p class="modal-copy">This replaces your saved journey. Try trusting someone else and see what changes.</p><div class="modal-actions"><button id="cancel-restart" class="quiet-button">Keep my journey</button><button id="confirm-restart" class="primary-button">Start again ↗</button></div></dialog>
 </body>

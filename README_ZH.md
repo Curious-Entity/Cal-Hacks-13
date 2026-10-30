@@ -1,14 +1,14 @@
 [English](README.md) | 简体中文
 
-# Last Light — AI 互动叙事
+# Unwritten — AI 互动叙事
 
 **创造世界。做出选择。改变故事。**
 
-Last Light 是为 Cal Hacks 13.0 开发的 AI 互动叙事项目。
+Unwritten 是为 Cal Hacks 13.0 开发的 AI 互动叙事项目。
 
 我们希望让用户创造自己的虚构世界，成为其中的角色，体验随每个决定动态发展的故事。
 
-与依赖预设分支的传统互动小说不同，Last Light 尝试结合生成式 AI、持续保存的故事记忆与玩家行动，带来个性化、且选择真正影响后续发展的叙事体验。
+与依赖预设分支的传统互动小说不同，Unwritten 尝试结合生成式 AI、持续保存的故事记忆与玩家行动，带来个性化、且选择真正影响后续发展的叙事体验。
 
 ## 演示
 
@@ -65,7 +65,7 @@ ENABLE_IMAGE_GENERATION=true
 
 ### 在线演示
 
-[打开 Last Light](https://last-light-calhacks-thirteen.awaregoat514.chatgpt.site)。此前文档将此演示标记为仅所有者可访问。本次文档更新没有重新核实其可用性与访问权限。
+[打开 Unwritten](https://last-light-calhacks-thirteen.awaregoat514.chatgpt.site)。此前文档将此演示标记为仅所有者可访问。本次文档更新没有重新核实其可用性与访问权限。
 
 ### 可选 AI 插画
 
@@ -111,7 +111,7 @@ Cloudflare 服务默认使用 `@cf/black-forest-labs/flux-2-klein-4b`，分辨�
 
 ## 核心概念
 
-Last Light 将一段简单的用户描述转化为可互动的虚构世界。
+Unwritten 将一段简单的用户描述转化为可互动的虚构世界。
 
 预期体验包括五个步骤：
 
@@ -127,7 +127,7 @@ Last Light 将一段简单的用户描述转化为可互动的虚构世界。
 
 > 一个魔法王国，每次施法都会永久抹去施法者的一段记忆。
 
-Last Light 生成一个拥有独立历史、人物与规则的虚构世界。
+Unwritten 生成一个拥有独立历史、人物与规则的虚构世界。
 
 玩家遇到一座禁止进入的魔法档案馆，需要决定下一步行动。
 
@@ -399,4 +399,4 @@ AI 体验应测试以下方面：
 
 ---
 
-**Last Light — 每个选择，都成为你故事的一部分。**
+**Unwritten — 每个选择，都成为你故事的一部分。**

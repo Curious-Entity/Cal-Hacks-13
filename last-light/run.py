@@ -1,4 +1,4 @@
-"""Start Last Light from any folder: python3 /path/to/last-light/run.py.
+"""Start Unwritten from any folder: python3 /path/to/last-light/run.py.
 
 The app itself uses dependency-free Node.js. This launcher finds or provisions a
 task-local Node 22 runtime, chooses a free port, and starts the application.
@@ -75,7 +75,7 @@ def prepare_environment():
 
 
 def main():
-    parser = argparse.ArgumentParser(description="Start the Last Light adventure app")
+    parser = argparse.ArgumentParser(description="Start the Unwritten adventure app")
     parser.add_argument("--port", type=int, help="Choose a specific port (default: first free port from 8000)")
     parser.add_argument("--test", action="store_true", help="Run the automated story and backend checks")
     args = parser.parse_args()
@@ -101,5 +101,5 @@ if __name__ == "__main__":
     try:
         main()
     except (RuntimeError, subprocess.CalledProcessError, OSError, StopIteration) as error:
-        print(f"Could not start Last Light: {error}", file=sys.stderr)
+        print(f"Could not start Unwritten: {error}", file=sys.stderr)
         sys.exit(1)

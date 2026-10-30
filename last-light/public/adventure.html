@@ -3,8 +3,8 @@
 <head>
   <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="theme-color" content="#0b171c">
-  <meta name="description" content="Describe a world. Make a choice. Discover what happens next. Create your own illustrated adventure with Last Light.">
-  <title>Last Light — your idea, your adventure</title>
+  <meta name="description" content="Unwritten turns your ideas into interactive stories and playable 3D worlds. Explore, make choices, and shape what happens next. The next chapter is yours.">
+  <title>Unwritten — The next chapter is yours.</title>
   <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='16' fill='%230b171c'/%3E%3Cpath d='M32 8 50 32 32 56 14 32Z' fill='none' stroke='%23bdddba' stroke-width='3'/%3E%3C/svg%3E">
   <link rel="stylesheet" href="styles.css"><link rel="stylesheet" href="adventure.css">
   <script type="module" src="adventure.js"></script>
@@ -12,10 +12,11 @@
 <body>
   <div class="app-shell">
     <header class="topbar">
-      <a class="brand" href="./"><span class="brand-symbol" aria-hidden="true">◇</span><span>LAST LIGHT<small>A STORY THAT REMEMBERS</small></span></a>
+      <a class="brand" href="./"><span class="brand-symbol" aria-hidden="true">◇</span><span>UNWRITTEN<small>THE NEXT CHAPTER IS YOURS</small></span></a>
       <div class="route-label"><span class="live-dot"></span> YOUR IDEA. YOUR ADVENTURE.</div>
       <nav class="controls" aria-label="Adventure controls">
-        <a class="sample-link" href="sample.html">Try the train demo ↗</a>
+        <button type="button" class="sample-link" data-prepared-example="forest">Try a 3D example ↗</button>
+        <button type="button" class="sample-link" data-prepared-example="train">Try an illustrated example ↗</button>
         <button class="quiet-button" id="adventure-journal" hidden>▤ Journal</button>
         <button class="quiet-button" id="new-adventure" hidden>↺ New story</button>
       </nav>
@@ -31,15 +32,17 @@
       <section id="setup-screen" class="setup-layout" aria-labelledby="setup-title">
         <div class="setup-intro">
           <p class="eyebrow">AN ADVENTURE THAT STARTS WITH YOU</p>
-          <h1 id="setup-title">Every world begins<br>with a <em>what if.</em></h1>
-          <p class="setup-lede">A city beneath the ocean. A dragon with a day job. A familiar place with one impossible secret.</p>
-          <p class="setup-description">Tell us the story you want to step into.<br>Where it goes next is up to you.</p>
+          <h1 id="setup-title">The next chapter<br>is <em>yours.</em></h1>
+          <p class="setup-lede">Start with an idea. Step into an illustrated story or a playable 3D world. Decide what happens next.</p>
+          <p class="setup-description">Your choices write the story.<br>Your actions change the world.</p>
           <div id="setup-illustration" class="setup-illustration" aria-hidden="true"></div>
-          <div class="experience-notes"><span>✧ A world from your imagination</span><span>↗ Five scenes, shaped by your choices</span><span>◇ A journey that remembers</span></div>
+          <div class="experience-notes"><span>✧ A world from your imagination</span><span>↗ Choices that change what happens next</span><span>◇ A journey that remembers</span></div>
         </div>
 
         <form id="setup-form" class="setup-card">
           <div class="form-topline"><span class="eyebrow">WRITE YOUR BEGINNING</span><span class="form-step">01 / CREATE</span></div>
+          <div class="experience-field"><label for="experience">How would you like to play?</label><select id="experience" name="experience"><option value="world">Explore a 3D world · WASD + interactions</option><option value="illustrated">Illustrated story · choices + scene images</option></select><p class="field-help" id="experience-help">Explore winding districts, solve physical puzzles, and guide your companions to safety.</p></div>
+          <div id="prepared-example-note" class="prepared-example-note" hidden><strong id="prepared-example-title"></strong><p>This prepared showcase opens the adventure shown here. Edit any detail to generate a fresh adventure.</p><button type="button" id="use-live-generation">Use these details for live generation instead ↗</button></div>
           <label for="premise">What’s your adventure?</label>
           <p class="field-help" id="premise-help">Set the world, the situation, or a question you want to explore.</p>
           <textarea id="premise" name="premise" rows="5" minlength="15" maxlength="4000" required aria-describedby="premise-help" placeholder="I’m a detective in an underwater city where everyone has forgotten yesterday. A letter arrives in my own handwriting…"></textarea>
@@ -52,8 +55,9 @@
           <div id="image-frequency-field" class="image-frequency" hidden><label for="image-frequency">When should we paint?</label><select id="image-frequency"><option value="on-demand">Only when I ask</option><option value="automatic">Once for every scene</option></select></div>
           <p id="connection-status" class="connection-status" role="status">Connecting to the storyteller…</p>
           <div id="setup-error" class="error-banner" role="alert" hidden></div>
-          <button id="begin-button" class="begin-button" type="submit"><span>Begin my adventure</span><span aria-hidden="true">↗</span></button>
+          <button id="begin-button" class="begin-button" type="submit"><span>Generate my adventure</span><span aria-hidden="true">↗</span></button>
           <button id="resume-button" class="resume-button" type="button" hidden>Continue your saved adventure →</button>
+          <a id="resume-world" class="resume-button world-resume-link" href="/world.html" hidden>Return to your saved 3D world →</a>
           <p class="form-footnote">One scene at a time. Your next choice writes the next page.</p>
         </form>
       </section>
@@ -89,9 +93,10 @@
         <div class="inventory-strip"><span class="eyebrow">YOUR TRAVELING COMPANIONS</span><span data-story-content id="cast-summary"></span><span class="prototype-note" id="journey-status"></span></div>
       </section>
     </main>
-    <footer class="site-footer"><span>◇ LAST LIGHT</span><span>Imagine a beginning. Discover your ending.</span></footer>
+    <footer class="site-footer"><span>◇ UNWRITTEN</span><span>The next chapter is yours.</span></footer>
   </div>
 
+  <dialog id="example-loading" class="modal example-loading" aria-labelledby="example-loading-title"><p class="eyebrow">OPENING A PREPARED EXAMPLE</p><img id="example-loading-art" width="1536" height="1024" alt=""><div class="example-loading-copy"><span class="loading-diamond" aria-hidden="true">◇</span><h2 id="example-loading-title">Opening your adventure…</h2><p id="example-loading-status" role="status">Loading the artwork and interactive scenes.</p><progress id="example-loading-progress" value="0" max="1" aria-label="Adventure asset loading progress"></progress><span id="example-loading-percent">0%</span><button type="button" id="cancel-example-loading" class="quiet-button">Cancel</button></div></dialog>
   <dialog id="adventure-journal-dialog" class="modal journal-modal"><form method="dialog"><button class="modal-close icon-button" aria-label="Close journal">×</button></form><p class="eyebrow">THE STORY SO FAR</p><h2>What the world remembers</h2><div data-story-content id="generated-relationships" class="relationships"></div><h3 class="journal-subtitle">Your decisions</h3><ol data-story-content id="generated-decisions" class="journal-entries"></ol><h3 class="journal-subtitle">Objects examined</h3><ul data-story-content id="generated-discoveries" class="journal-entries"></ul><h3 class="journal-subtitle">Things you know</h3><ul data-story-content id="generated-facts" class="journal-entries"></ul></dialog>
   <dialog id="object-dialog" class="modal object-modal"><form method="dialog"><button class="modal-close icon-button" aria-label="Close object inspection">×</button></form><span id="object-dialog-icon" class="object-dialog-icon" aria-hidden="true"></span><p class="eyebrow" id="object-scene-label">A CLOSER LOOK</p><h2 data-story-content id="object-title"></h2><p data-story-content id="object-description" class="modal-copy"></p><div class="object-clue"><span class="eyebrow">YOU NOTICE SOMETHING</span><p data-story-content id="object-clue"></p></div><p id="object-memory-status" class="object-memory-status" role="status"></p><button id="retry-inspection" class="retry-button" hidden>Save this discovery again ↗</button></dialog>
   <dialog id="new-adventure-dialog" class="modal"><p class="eyebrow">ANOTHER WORLD IS WAITING</p><h2>Begin somewhere new?</h2><p class="modal-copy">Your current adventure stays saved until you successfully create a new one.</p><div class="modal-actions"><button id="cancel-new" class="quiet-button">Keep playing</button><button id="confirm-new" class="primary-button">Write a new beginning ↗</button></div></dialog>

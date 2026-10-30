@@ -3,12 +3,12 @@ import { createServer } from 'node:http';
 import { readFile, stat } from 'node:fs/promises';
 import { resolve, extname, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { handleAPI } from './backend/adventure.js';
+import { handleAPI } from './backend/api.js';
 
 const root = fileURLToPath(new URL('.', import.meta.url));
 const publicRoot = resolve(root, 'public');
 const port = Number(process.env.PORT || 8000);
-const mime = { '.html':'text/html; charset=utf-8', '.css':'text/css; charset=utf-8', '.js':'text/javascript; charset=utf-8', '.svg':'image/svg+xml', '.png':'image/png', '.ico':'image/x-icon' };
+const mime = { '.html':'text/html; charset=utf-8', '.css':'text/css; charset=utf-8', '.js':'text/javascript; charset=utf-8', '.svg':'image/svg+xml', '.png':'image/png', '.jpg':'image/jpeg', '.jpeg':'image/jpeg', '.webp':'image/webp', '.ico':'image/x-icon' };
 async function environment() {
   const env = { ...process.env };
   try {
@@ -52,4 +52,4 @@ const server = createServer(async (req, res) => {
 });
 server.requestTimeout = 150000;
 server.on('error', error => { console.error(error.code === 'EADDRINUSE' ? `Port ${port} is already in use. Stop the old server or choose a different PORT.` : 'The local server could not start.'); process.exitCode = 1; });
-server.listen(port, '127.0.0.1', () => console.log(`Last Light is running at http://localhost:${port}\nKeep this terminal open. Press Ctrl+C to stop.\nEdit last-light/.env to connect Cloudflare Workers AI or Gemini; changes are picked up automatically.`));
+server.listen(port, '127.0.0.1', () => console.log(`Unwritten is running at http://localhost:${port}\nKeep this terminal open. Press Ctrl+C to stop.\nEdit last-light/.env to connect Cloudflare Workers AI or Gemini; changes are picked up automatically.`));
